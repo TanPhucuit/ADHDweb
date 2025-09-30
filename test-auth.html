@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Auth Fix</title>
+</head>
+<body>
+    <h1>Test Auth Fix</h1>
+    <p>This will simulate login for bacnam@child.com</p>
+    <button onclick="testLogin()">Login as bacnam@child.com</button>
+    <button onclick="checkStoredUser()">Check Stored User</button>
+    <button onclick="clearStorage()">Clear Storage</button>
+    <div id="result"></div>
+
+    <script>
+        function testLogin() {
+            const user = {
+                id: "child-2",
+                email: "bacnam@child.com", 
+                name: "Trần Bắc Nam",
+                firstName: "Nam",
+                lastName: "Trần Bắc",
+                role: "child",
+                avatar: "/child-avatar.png",
+                createdAt: new Date("2024-02-10"),
+                updatedAt: new Date()
+            };
+            
+            localStorage.setItem("adhd-dashboard-user", JSON.stringify(user));
+            document.getElementById("result").innerHTML = 
+                `<p style="color: green;">✅ Login successful for: ${user.name} (${user.email})</p>
+                 <p>Saved to localStorage with ID: ${user.id}</p>
+                 <p><a href="http://localhost:3002/child" target="_blank">Open Child Dashboard</a></p>`;
+        }
+        
+        function checkStoredUser() {
+            const stored = localStorage.getItem("adhd-dashboard-user");
+            if (stored) {
+                const user = JSON.parse(stored);
+                document.getElementById("result").innerHTML = 
+                    `<p style="color: blue;">📱 Found stored user:</p>
+                     <pre>${JSON.stringify(user, null, 2)}</pre>`;
+            } else {
+                document.getElementById("result").innerHTML = 
+                    `<p style="color: red;">❌ No user found in localStorage</p>`;
+            }
+        }
+        
+        function clearStorage() {
+            localStorage.removeItem("adhd-dashboard-user");
+            document.getElementById("result").innerHTML = 
+                `<p style="color: orange;">🧹 Storage cleared</p>`;
+        }
+    </script>
+</body>
+</html>
