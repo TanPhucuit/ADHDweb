@@ -23,27 +23,20 @@ function useAuth() {
     setMounted(true)
     // Get user from localStorage (set by API login)
     const storedUser = localStorage.getItem('adhd-dashboard-user')
-    console.log('🔍 Raw localStorage data:', storedUser)
-    
     if (storedUser) {
       try {
         const userData = JSON.parse(storedUser)
-        console.log('🔍 Parsed user data:', userData)
-        
         // Validate that this is actually from API (has the right structure)
         if (userData.id && userData.role && userData.email) {
-          console.log('✅ Valid user data, setting user:', userData)
           setUser(userData)
         } else {
-          console.warn('❌ Invalid user data in localStorage, clearing...', userData)
+          console.warn('Invalid user data in localStorage, clearing...')
           localStorage.removeItem('adhd-dashboard-user')
         }
       } catch (e) {
-        console.error('❌ Error parsing stored user:', e)
+        console.error('Error parsing stored user:', e)
         localStorage.removeItem('adhd-dashboard-user')
       }
-    } else {
-      console.log('⚠️ No stored user found in localStorage')
     }
     setLoading(false)
   }, [])
@@ -76,7 +69,6 @@ export default function ParentDashboard() {
     try {
       setDataLoading(true)
       console.log('🔍 Loading data for parent:', user?.id)
-      console.log('🔍 Full user object:', user)
       
       // Fetch children for this parent
       const response = await fetch(`/api/parent/children?parentId=${user?.id}`)
@@ -149,7 +141,7 @@ export default function ParentDashboard() {
             <div className="space-y-6">
               {/* Camera Preview */}
               {selectedChild && (
-                <CameraPreview childName={selectedChild.name} />
+                <CameraPreview childName={selectedChild.name} childId={selectedChild.id.toString()} />
               )}
 
               {/* Completion Notifications - Shows completed activities */}
