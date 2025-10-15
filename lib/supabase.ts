@@ -4,7 +4,26 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://your-project.supabase.co'
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'your-anon-key'
 
+// Create client with fallback for build time
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+// Server-side API helper with better error handling
+export function createServerSupabaseClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!url) {
+    console.warn('⚠️ NEXT_PUBLIC_SUPABASE_URL is not set, using fallback')
+    return createClient('https://placeholder.supabase.co', 'placeholder-key')
+  }
+
+  if (!key) {
+    console.warn('⚠️ Supabase key is not set, using fallback')
+    return createClient(url, 'placeholder-key')
+  }
+
+  return createClient(url, key)
+}
 
 // Database types
 export interface Database {

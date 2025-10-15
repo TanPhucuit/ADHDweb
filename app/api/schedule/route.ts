@@ -1,23 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
-// Child ID mapping - convert from internal child ID to database child_id
-function getChildDataId(childId: string): string {
-  const childMapping: { [key: string]: string } = {
-    '30': 'child-2',  // Trần Bảo Nam
-    '28': 'child-1',  // Other child if exists
-    // Add more mappings as needed
-  }
-  return childMapping[childId] || childId
-}
+import { createServerSupabaseClient } from '@/lib/supabase'
 
 // GET - Get all schedule activities from Supabase database ONLY
 export async function GET(request: NextRequest) {
+  const supabase = createServerSupabaseClient()
   try {
     const { searchParams } = new URL(request.url)
     const childId = searchParams.get('childId')
@@ -25,10 +11,6 @@ export async function GET(request: NextRequest) {
     console.log('🔍 Fetching schedule activities from database for child:', childId)
 
     if (childId) {
-      // Convert to database child ID format
-      const dataChildId = getChildDataId(childId)
-      console.log('📊 Using mapped child ID:', childId, '->', dataChildId)
-
       // Try direct query first (for simplified sample data)
       let { data, error } = await supabase
         .from('schedule_activity')
@@ -131,6 +113,8 @@ export async function GET(request: NextRequest) {
 
 // POST - Create or update schedule activity in Supabase database ONLY
 export async function POST(request: NextRequest) {
+  const supabase = createServerSupabaseClient()
+  
   try {
     const body = await request.json()
     const { id, childId, subject, title, description, startTime, endTime, status, completedAt } = body

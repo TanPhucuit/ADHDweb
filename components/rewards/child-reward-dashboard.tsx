@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Star, Trophy, Crown } from "lucide-react"
 import type { Child, Reward, RewardRedemption, ChildRewardProfile } from "@/lib/types"
+import { apiService } from "@/lib/api-service"
 import { dataStore } from "@/lib/data-store"
 
 interface ChildRewardDashboardProps {
@@ -29,10 +30,9 @@ export function ChildRewardDashboard({ child }: ChildRewardDashboardProps) {
       setLoading(true)
       console.log('🏆 Loading child reward data from API for child:', child.id)
       
-      // Get real reward data from API mới với đúng parent ID
-      const response = await fetch(`/api/rewards/calculate?childId=${child.id}&parentId=${child.parentId}`)
-      const rewards = await response.json()
-      console.log('🎯 API Reward data for child:', child.id, 'parent:', child.parentId, rewards)
+      // Get real reward data from API
+      const rewards = await apiService.getRewardPoints(child.id.toString())
+      console.log('🎯 API Reward data:', rewards)
       
       // Create profile from API data
       const rewardProfile: ChildRewardProfile = {
@@ -52,8 +52,7 @@ export function ChildRewardDashboard({ child }: ChildRewardDashboardProps) {
         dailyBadges: {
           superStar: rewards.breakdown?.medicationLogs || 0,
           total: rewards.breakdown?.medicationLogs || 0
-        },
-        lastResetDate: new Date().toISOString().split('T')[0]
+        }
       }
       
       setProfile(rewardProfile)
@@ -66,7 +65,7 @@ export function ChildRewardDashboard({ child }: ChildRewardDashboardProps) {
           title: "15 phút chơi game",
           description: "Thời gian chơi game bổ sung",
           pointsCost: 50,
-          category: "screen_time",
+          category: "entertainment",
           isAvailable: true,
           createdAt: new Date(),
           updatedAt: new Date()
@@ -76,7 +75,7 @@ export function ChildRewardDashboard({ child }: ChildRewardDashboardProps) {
           title: "Đi xem phim",
           description: "Cùng gia đình đi xem phim",
           pointsCost: 100,
-          category: "activity",
+          category: "family_time",
           isAvailable: true,
           createdAt: new Date(),
           updatedAt: new Date()
