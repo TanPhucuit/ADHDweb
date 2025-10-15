@@ -40,16 +40,7 @@ export function ParentRewardDashboard({ child }: ParentRewardDashboardProps) {
   const [availableRewards, setAvailableRewards] = useState<Reward[]>([])
   const [pendingRedemptions, setPendingRedemptions] = useState<RewardRedemption[]>([])
   const [customRewards, setCustomRewards] = useState<CustomReward[]>([])
-  const [rewardSummary, setRewardSummary] = useState<{
-    totalStars: number, 
-    scheduleStars: number, 
-    medicationStars: number,
-    breakdown?: {
-      completedScheduleActivities?: number,
-      takenMedicationLogs?: number,
-      encouragementActions?: number
-    }
-  } | null>(null)
+  const [rewardSummary, setRewardSummary] = useState<{totalStars: number, scheduleStars: number, medicationStars: number} | null>(null)
   const [loading, setLoading] = useState(true)
   const [customPointRules, setCustomPointRules] = useState<CustomPointRule[]>([
     {
@@ -100,18 +91,22 @@ export function ParentRewardDashboard({ child }: ParentRewardDashboardProps) {
   const loadRewardData = async () => {
     try {
       setLoading(true)
-      console.log('🏆 Loading reward data from API for child:', child.id)
+      const childId = child.id?.toString() || child.childid?.toString()
+      console.log('🏆 Loading reward data from API for child:', childId)
       
-      // Get real reward data from API mới với đúng child ID và parent ID
-      const response = await fetch(`/api/rewards/calculate?childId=${child.id}&parentId=${child.parentId}`)
-      const rewards = await response.json()
-      console.log('🎯 API Reward data for child:', child.id, 'parent:', child.parentId, rewards)
+      if (!childId) {
+        console.error('❌ No valid child ID found:', child)
+        return
+      }
+      
+      // Get real reward data from API
+      const rewards = await apiService.getRewardPoints(childId)
+      console.log('🎯 API Reward data:', rewards)
       
       setRewardSummary({
         totalStars: rewards.totalStars,
         scheduleStars: rewards.breakdown?.scheduleStars || 0,
-        medicationStars: rewards.breakdown?.medicationStars || 0,
-        breakdown: rewards.breakdown
+        medicationStars: rewards.breakdown?.medicationStars || 0
       })
       
       // Mock profile data for now since we don't have this API yet
@@ -336,7 +331,7 @@ export function ParentRewardDashboard({ child }: ParentRewardDashboardProps) {
                   <div className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-xl p-4 border-2 border-purple-200">
                     <div className="text-center">
                       <div className="text-3xl mb-2">📚</div>
-                      <div className="text-2xl font-bold text-purple-600 mb-1">{rewardSummary.breakdown?.completedScheduleCount || 0}</div>
+                      <div className="text-2xl font-bold text-purple-600 mb-1">{Math.floor(rewardSummary.scheduleStars / 5)}</div>
                       <p className="text-sm text-purple-700 font-medium">Hoạt động hoàn thành</p>
                       <p className="text-xs text-purple-600 mt-1">
                         {rewardSummary.scheduleStars} sao từ hoàn thành bài tập
@@ -347,7 +342,7 @@ export function ParentRewardDashboard({ child }: ParentRewardDashboardProps) {
                   <div className="bg-gradient-to-br from-yellow-100 to-orange-100 rounded-xl p-4 border-2 border-yellow-200">
                     <div className="text-center">
                       <div className="text-3xl mb-2">💊</div>
-                      <div className="text-2xl font-bold text-orange-600 mb-1">{rewardSummary.breakdown?.takenMedicationCount || 0}</div>
+                      <div className="text-2xl font-bold text-orange-600 mb-1">{Math.floor(rewardSummary.medicationStars / 10)}</div>
                       <p className="text-sm text-orange-700 font-medium">Lần uống thuốc</p>
                       <p className="text-xs text-orange-600 mt-1">
                         {rewardSummary.medicationStars} sao từ uống thuốc

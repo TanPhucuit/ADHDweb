@@ -5,29 +5,42 @@ import { dataStore } from "@/lib/data-store"
 import { apiService } from "@/lib/api-service"
 import type { Child, DailyReport, FocusSession, User } from "@/lib/types"
 
-// Mock auth hook for parent
+// Real auth hook that validates API authentication data
 function useAuth() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    // Simulate parent authentication - use real parent ID 1
-    setTimeout(() => {
-      setUser({
-        id: '1', // Real parent ID from database
-        email: 'demo@parent.com',
-        firstName: 'Nguyễn',
-        lastName: 'Văn An',
-        name: 'Nguyễn Văn An',
-        role: 'parent',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      })
-      setLoading(false)
-    }, 100)
+    setMounted(true)
+    // Get user from localStorage (set by API login)
+    const storedUser = localStorage.getItem('adhd-dashboard-user')
+    if (storedUser) {
+      try {
+        const userData = JSON.parse(storedUser)
+        // Validate that this is actually from API (has the right structure)
+        if (userData.id && userData.role && userData.email) {
+          setUser(userData)
+          console.log('🔐 Real auth loaded parent user for reports:', userData)
+        } else {
+          console.warn('Invalid user data in localStorage, clearing...')
+          localStorage.removeItem('adhd-dashboard-user')
+        }
+      } catch (e) {
+        console.error('Error parsing stored user:', e)
+        localStorage.removeItem('adhd-dashboard-user')
+      }
+    }
+    setLoading(false)
   }, [])
 
-  return { user, loading }
+  const logout = () => {
+    localStorage.removeItem('adhd-dashboard-user')
+    setUser(null)
+    window.location.href = '/'
+  }
+
+  return { user, loading: loading || !mounted, logout }
 }
 import { DashboardHeader } from "@/components/parent/dashboard-header"
 import { ReportsHeader } from "@/components/reports/reports-header"
@@ -36,6 +49,7 @@ import { FocusScoreChart } from "@/components/reports/focus-score-chart"
 import { SubjectPerformanceChart } from "@/components/reports/subject-performance-chart"
 import { TimeDistributionChart } from "@/components/reports/time-distribution-chart"
 import { HistoricalDataTable } from "@/components/reports/historical-data-table"
+import { LearningPerformanceChart } from "@/components/reports/learning-performance-chart"
 import { GoBackButton } from "@/components/ui/go-back-button"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
@@ -64,11 +78,12 @@ export default function ReportsPage() {
     try {
       console.log("[v0] Getting children data for parent:", user!.id)
       // Use real API to get children
-      const childrenData = await apiService.getParentChildren(user!.id)
-      console.log("[v0] Children data received:", childrenData?.length || 0, "children")
+      const childrenData = await apiService.getParentChildren(user!.id.toString())
+      console.log("[v0] Children data received:", childrenData?.length || 0, "children", childrenData)
 
       if (childrenData && childrenData.length > 0) {
         const childData = childrenData[0] // Use first child
+        console.log("[v0] Using first child:", childData)
         setChild(childData)
 
         const days = dateRange === "today" ? 1 : dateRange === "7days" ? 7 : 30
@@ -175,13 +190,13 @@ export default function ReportsPage() {
         <DateRangeSelector selectedRange={dateRange} onRangeChange={setDateRange} />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <FocusScoreChart sessions={sessions} reports={reports} />
-          <SubjectPerformanceChart sessions={sessions} />
+          <FocusScoreChart sessions={sessions} reports={reports} childId={child.id.toString()} />
+          <LearningPerformanceChart childId={child.id.toString()} />
         </div>
 
         <TimeDistributionChart reports={reports} />
 
-        <HistoricalDataTable sessions={sessions} reports={reports} />
+        <HistoricalDataTable sessions={sessions} reports={reports} childId={child.id.toString()} />
       </main>
     </div>
   )
