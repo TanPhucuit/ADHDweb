@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Calistoga } from "next/font/google"
 import { Suspense } from "react"
 import { AuthProvider } from "@/lib/auth"
+import { CustomToastContainer } from "@/components/ui/custom-toast"
 import "./globals.css"
 
 const helveticaWorld = {
@@ -36,6 +37,7 @@ export default function RootLayout({
       >
         <AuthProvider>
           <Suspense fallback={null}>{children}</Suspense>
+          <CustomToastContainer />
         </AuthProvider>
       </body>
     </html>
