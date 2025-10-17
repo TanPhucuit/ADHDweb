@@ -39,11 +39,12 @@ export async function POST(request: NextRequest) {
     const supabase = createServerSupabaseClient()
 
     const canonicalMap: Record<string, string> = {
-      // Map tất cả các biến thể về 4 giá trị hợp lệ trong DB
-      // Giá trị hợp lệ: 'nhac-tap-trung', 'khen-ngoi', 'dong-vien', 'nghi-ngoi'
+      // Map tất cả các biến thể về 3 giá trị hợp lệ trong DB
+      // Giá trị hợp lệ: 'nhac-tap-trung', 'khen-ngoi', 'dong-vien'
       'co-vu': 'dong-vien',
       'nhac-hoc': 'nhac-tap-trung',
-      'nghi-giai-lao': 'nghi-ngoi',
+      'nghi-giai-lao': 'dong-vien', // Map break to encouragement
+      'nghi-ngoi': 'dong-vien', // Map rest to encouragement
       'khen-thuong': 'khen-ngoi',
       'xem-gio': 'nhac-tap-trung', // Map to reminder category
       'kiem-tra-thoi-gian': 'nhac-tap-trung' // Map time check to reminder

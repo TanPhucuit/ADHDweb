@@ -4,6 +4,8 @@ import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { MessageSquare, Coffee, Trophy, Heart, Clock, MessageCircle, Calendar, X, Plus } from "lucide-react"
 import { ScheduleModal } from "./schedule-modal"
+import { useToast } from "@/hooks/use-toast" // Import useToast hook
+import { showCustomToast } from "@/components/ui/custom-toast" // Import custom toast
 
 interface QuickActionsProps {
   selectedChildId?: string
@@ -13,6 +15,7 @@ interface QuickActionsProps {
 export function QuickActions({ selectedChildId, parentId }: QuickActionsProps) {
   const [showScheduleModal, setShowScheduleModal] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const { toast } = useToast() // Initialize toast hook
 
   const handleScheduleClick = () => {
     if (!selectedChildId) {
@@ -23,14 +26,55 @@ export function QuickActions({ selectedChildId, parentId }: QuickActionsProps) {
   }
 
   const handleActionClick = async (actionLabel: string, actionName: string) => {
+    console.log('🎯 handleActionClick called:', { parentId, actionLabel, actionName })
+    
     if (!parentId) {
+      console.error('❌ Missing parentId')
       alert("Không tìm thấy thông tin phụ huynh")
       return
     }
 
     setIsLoading(true)
     try {
-      console.log('🎯 Ghi nhận hành động:', { parentId, actionLabel, actionName })
+      // Handle break request separately
+      if (actionLabel === 'nghi-ngoi') {
+        // Record as break action in database
+        const breakResponse = await fetch('/api/break-requests', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            childId: selectedChildId || 'unknown',
+            childName: 'Con', 
+            parentId: parentId,
+            duration: 5
+          })
+        })
+
+        if (breakResponse.ok) {
+          showCustomToast("Đã ghi nhận yêu cầu nghỉ giải lao!", "action-success")
+          toast({
+            title: "Thành công",
+            description: "Đã ghi nhận yêu cầu nghỉ giải lao!",
+          })
+        } else {
+          const errorText = await breakResponse.text()
+          console.error('Break request error:', errorText)
+          showCustomToast("Có lỗi khi ghi nhận nghỉ giải lao.", "error")
+          toast({
+            title: "Lỗi",
+            description: "Có lỗi khi ghi nhận nghỉ giải lao.",
+          })
+        }
+        return
+      }
+
+      // Handle other actions normally
+      console.log('📤 Sending action request:', {
+        parentId,
+        actionLabel,
+        actionName,
+        timestamp: new Date().toISOString()
+      })
       
       const response = await fetch('/api/parent/actions', {
         method: 'POST',
@@ -38,24 +82,52 @@ export function QuickActions({ selectedChildId, parentId }: QuickActionsProps) {
         body: JSON.stringify({
           parentId,
           actionLabel,
-          actionName
-          // Không gửi timestamp, để API tự động tạo từ system time
+          actionName,
+          timestamp: new Date().toISOString()
         })
       })
 
       if (response.ok) {
-        const result = await response.json()
-        alert(`✅ ${result.message || `Đã ghi nhận hành động: ${actionName}`}`)
-        // Trigger refresh of intervention counter
-        window.dispatchEvent(new CustomEvent('interventionAdded'))
+        try {
+          const result = await response.json()
+          console.log('✅ Action recorded:', result)
+          showCustomToast("Hành động đã được ghi nhận thành công!", "action-success") // Custom popup
+          toast({
+            title: "Thành công",
+            description: "Hành động đã được ghi nhận thành công!",
+          }) // Show success toast
+        } catch (jsonError) {
+          console.error("❌ Error parsing JSON response:", jsonError)
+          showCustomToast("Phản hồi từ server không hợp lệ.", "error")
+          toast({
+            title: "Lỗi",
+            description: "Phản hồi từ server không hợp lệ.",
+          }) // Show error toast for invalid JSON
+        }
       } else {
-        const error = await response.json()
-        console.error('❌ API Error:', error)
-        alert(`Có lỗi xảy ra: ${error.details || error.error || 'Lỗi không xác định'}`)
+        let errorMessage = "Có lỗi xảy ra khi ghi nhận hành động."
+        try {
+          const errorData = await response.json()
+          console.error("❌ API Error:", response.status, errorData)
+          errorMessage = errorData.error || errorData.details || errorMessage
+        } catch {
+          const text = await response.text()
+          console.error("❌ Error response text:", text)
+        }
+        
+        showCustomToast(errorMessage, "error")
+        toast({
+          title: "Lỗi",
+          description: errorMessage,
+        }) // Show error toast with details
       }
     } catch (error) {
-      console.error('❌ Request Error:', error)
-      alert('Có lỗi kết nối. Vui lòng thử lại!')
+      console.error("Error recording action:", error)
+      showCustomToast("Có lỗi xảy ra khi ghi nhận hành động.", "error")
+      toast({
+        title: "Lỗi",
+        description: "Có lỗi xảy ra khi ghi nhận hành động.",
+      }) // Show error toast
     } finally {
       setIsLoading(false)
     }

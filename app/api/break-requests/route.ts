@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
       .from('action')
       .insert([{
         parentid: parseInt(parentId),
-        action_label: 'nghi-ngoi', // Use 'nghi-ngoi' for break requests
+        action_label: 'dong-vien', // Use 'dong-vien' since 'nghi-ngoi' is not in constraint
         timestamp: new Date().toISOString()
       }])
       .select()
