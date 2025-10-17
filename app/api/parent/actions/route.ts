@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/client'
+import { createServerSupabaseClient } from '@/lib/supabase'
 
 export async function POST(request: NextRequest) {
   try {
-    const { parentId, actionLabel, actionName, timestamp } = await request.json()
+    const body = await request.json()
+    const { parentId, actionLabel, actionName, timestamp } = body
+    
+    console.log('📥 Received action request:', { body, parentId, actionLabel, actionName, timestamp })
     
     if (!parentId || !actionLabel || !timestamp) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+      console.error('❌ Missing required fields:', { parentId, actionLabel, timestamp })
+      return NextResponse.json({ 
+        error: 'Missing required fields',
+        received: { parentId: !!parentId, actionLabel: !!actionLabel, timestamp: !!timestamp }
+      }, { status: 400 })
     }
 
     const pid = Number(parentId)
@@ -29,7 +36,7 @@ export async function POST(request: NextRequest) {
       timestampToSave: vietnamTime.toISOString()
     })
 
-    const supabase = createClient()
+    const supabase = createServerSupabaseClient()
 
     const canonicalMap: Record<string, string> = {
       // Map tất cả các biến thể về 4 giá trị hợp lệ trong DB
@@ -80,7 +87,7 @@ export async function POST(request: NextRequest) {
       // Use relative URL to work in both dev and production
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
                       (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 
-                      'http://localhost:3001')
+                      `http://localhost:${process.env.PORT || 3000}`)
       
       const notificationResponse = await fetch(`${baseUrl}/api/notifications`, {
         method: 'POST',
@@ -130,7 +137,7 @@ export async function GET(request: NextRequest) {
 
     console.log('📊 Fetching action count for parent:', parentId)
 
-    const supabase = createClient()
+    const supabase = createServerSupabaseClient()
 
     // Get total action count for this parent
     const { count: totalCount, error: totalCountError } = await supabase

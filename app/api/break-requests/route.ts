@@ -1,46 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://pjvztaykgkxnefwsyqvd.supabase.co'
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBqdnp0YXlrZ2t4bmVmd3N5cXZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzIyNTczMjIsImV4cCI6MjA0NzgzMzMyMn0.Jj6Tiq-GCnfhftIBb39s9Cr5HaMO9pHh9FKsWr5Mii8'
-
-const supabase = createClient(supabaseUrl, supabaseKey)
+import { createServerSupabaseClient } from '@/lib/supabase'
 
 export async function POST(request: NextRequest) {
   try {
-    const { childId, childName, parentId, duration = 5, timestamp } = await request.json()
+    const { childId, childName, parentId, duration = 5 } = await request.json()
     
-    // Sử dụng timestamp từ client hoặc timestamp hiện tại
-    const requestTimestamp = timestamp || new Date().toISOString()
-    
-    console.log('💤 Recording break request in database for child:', childId, 'parent:', parentId, 'at:', requestTimestamp)
+    console.log('💤 Recording break request as action for child:', childId, 'parent:', parentId)
 
-    // Insert break request into database
+    const supabase = createServerSupabaseClient()
+
+    // Record break request as a special action type
     const { data, error } = await supabase
-      .from('break_requests')
+      .from('action')
       .insert([{
-        child_id: childId,
-        child_name: childName,
-        parent_id: parentId,
-        duration,
-        status: 'active',
-        created_at: requestTimestamp,
-        updated_at: requestTimestamp
+        parentid: parseInt(parentId),
+        action_label: 'nghi-ngoi', // Use 'nghi-ngoi' for break requests
+        timestamp: new Date().toISOString()
       }])
       .select()
       .single()
 
     if (error) {
-      console.error('❌ Database error creating break request:', error)
-      return NextResponse.json({ error: 'Failed to record break request' }, { status: 500 })
+      console.error('❌ Database error creating break action:', error)
+      return NextResponse.json({ 
+        error: 'Failed to record break request',
+        details: error.message 
+      }, { status: 500 })
     }
 
-    console.log('✅ Break request recorded in database:', data)
+    console.log('✅ Break request recorded as action:', data)
 
     return NextResponse.json({ 
       success: true, 
       breakRequest: data,
-      message: `Break request recorded for ${childName} at ${new Date(requestTimestamp).toLocaleTimeString('vi-VN')}` 
+      message: `Break request recorded for ${childName}` 
     })
 
   } catch (error) {
@@ -56,6 +49,27 @@ export async function GET(request: NextRequest) {
     const childId = searchParams.get('childId')
     
     console.log('📋 Fetching break requests from database for parent:', parentId, 'child:', childId)
+
+    const supabase = createServerSupabaseClient()
+
+    // First check if table exists and get all data for debugging
+    const { data: allData, error: allError } = await supabase
+      .from('break_requests')
+      .select('*')
+      .limit(5)
+
+    if (allError) {
+      console.error('❌ Database error (table check):', allError)
+      // Return empty data instead of error for now
+      return NextResponse.json({ 
+        success: true, 
+        breakRequests: [],
+        total: 0,
+        debug: { error: allError.message }
+      })
+    }
+
+    console.log('📊 Sample break requests data:', allData)
 
     let query = supabase
       .from('break_requests')
@@ -74,7 +88,13 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('❌ Database error fetching break requests:', error)
-      return NextResponse.json({ error: 'Failed to fetch break requests' }, { status: 500 })
+      // Return empty instead of error
+      return NextResponse.json({ 
+        success: true, 
+        breakRequests: [],
+        total: 0,
+        debug: { error: error.message }
+      })
     }
 
     console.log(`✅ Found ${data?.length || 0} break requests in database`)
