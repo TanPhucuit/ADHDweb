@@ -5,86 +5,116 @@ export async function POST(request: NextRequest) {
   try {
     const { parentId, actionLabel, actionName, timestamp } = await request.json()
     
-    if (!parentId || !actionLabel) {
+    if (!parentId || !actionLabel || !timestamp) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    const currentTimestamp = timestamp || new Date().toISOString()
-    console.log('🎯 Recording parent action:', { parentId, actionLabel, actionName, timestamp: currentTimestamp })
+    const pid = Number(parentId)
+    if (!Number.isFinite(pid)) {
+      return NextResponse.json({ error: 'Invalid parentId' }, { status: 400 })
+    }
+
+    const ts = new Date(timestamp)
+    if (isNaN(ts.getTime())) {
+      return NextResponse.json({ error: 'Invalid timestamp' }, { status: 400 })
+    }
+
+    // Use current Vietnam time directly since server is already in Asia/Saigon timezone
+    const vietnamTime = new Date() // Server is already in GMT+7
+
+    console.log('🎯 Recording parent action:', { 
+      parentId: pid, 
+      actionLabel, 
+      currentVietnamTime: vietnamTime.toLocaleString('vi-VN'),
+      timestampToSave: vietnamTime.toISOString()
+    })
 
     const supabase = createClient()
 
-    try {
-      console.log('🔍 Attempting insert with original label:', actionLabel)
-      const { data, error } = await supabase
+    const canonicalMap: Record<string, string> = {
+      // Map tất cả các biến thể về 4 giá trị hợp lệ trong DB
+      // Giá trị hợp lệ: 'nhac-tap-trung', 'khen-ngoi', 'dong-vien', 'nghi-ngoi'
+      'co-vu': 'dong-vien',
+      'nhac-hoc': 'nhac-tap-trung',
+      'nghi-giai-lao': 'nghi-ngoi',
+      'khen-thuong': 'khen-ngoi',
+      'xem-gio': 'nhac-tap-trung', // Map to reminder category
+      'kiem-tra-thoi-gian': 'nhac-tap-trung' // Map time check to reminder
+    }
+
+    // Normalize action label before inserting
+    const normalizedLabel = canonicalMap[actionLabel] || actionLabel
+    
+    console.log('🔄 Action label normalization:', { 
+      original: actionLabel, 
+      normalized: normalizedLabel 
+    })
+
+    const tryInsert = async (label: string) => {
+      return await supabase
         .from('action')
         .insert({
-          parentid: parseInt(parentId),
-          action_label: actionLabel,
-          timestamp: currentTimestamp
+          parentid: pid,
+          action_label: label,
+          timestamp: vietnamTime.toISOString(),
         })
         .select()
         .single()
+    }
 
-      if (error) {
-        console.log('❌ Original action label failed:', error.message)
-        
-        const fallbackMapping: { [key: string]: string } = {
-          'nghi-ngoi': 'nghi-giai-lao',
-          'khen-ngoi': 'khen-thuong', 
-          'nhac-tap-trung': 'nhac-hoc',
-          'dong-vien': 'co-vu',
-          'kiem-tra-thoi-gian': 'xem-gio'
-        }
-        
-        const fallbackLabel = fallbackMapping[actionLabel];
-        if (fallbackLabel) {
-          console.log('🔄 Trying fallback action label:', fallbackLabel)
-          
-          const { data: fallbackData, error: fallbackError } = await supabase
-            .from('action')
-            .insert({
-              parentid: parseInt(parentId),
-              action_label: fallbackLabel,
-              timestamp: currentTimestamp
-            })
-            .select()
-            .single()
-            
-          if (fallbackError) {
-            throw fallbackError;
-          }
-          
-          console.log('✅ Fallback action recorded successfully')
-          return NextResponse.json({
-            success: true,
-            message: `Đã ghi nhận hành động: ${actionName}`,
-            action: { id: fallbackData?.id, parentId, actionLabel: fallbackLabel, actionName, timestamp: currentTimestamp }
-          })
-        } else {
-          throw error;
-        }
-      } else {
-        console.log('✅ Original action recorded successfully')
-        return NextResponse.json({
-          success: true,
-          message: `Đã ghi nhận hành động: ${actionName}`,
-          action: { id: data?.id, parentId, actionLabel, actionName, timestamp: currentTimestamp }
-        })
-      }
-    } catch (insertError) {
-      console.error('❌ Error recording action:', insertError)
+    // Use normalized label directly
+    const { data: action, error: actionError } = await tryInsert(normalizedLabel)
+
+    if (actionError) {
+      console.error('❌ Error recording action:', actionError)
       return NextResponse.json({ 
-        error: 'Failed to record action',
-        details: insertError instanceof Error ? insertError.message : 'Database constraint violation'
+        error: 'Error recording action',
+        details: actionError.message 
       }, { status: 500 })
     }
 
+    console.log('✅ Action recorded successfully:', action)
+
+    // Create notification for parent when action is recorded
+    try {
+      // Use relative URL to work in both dev and production
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 
+                      'http://localhost:3001')
+      
+      const notificationResponse = await fetch(`${baseUrl}/api/notifications`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: pid.toString(),
+          childId: 'system',
+          type: 'parent_action_recorded',
+          title: '✅ Hành động đã ghi nhận',
+          message: `Đã ghi nhận hành động: ${actionName || actionLabel}`,
+          metadata: { actionLabel: normalizedLabel, actionName }
+        })
+      })
+
+      if (notificationResponse.ok) {
+        console.log('📢 Notification created for parent action')
+      }
+    } catch (error) {
+      console.log('⚠️ Failed to create notification:', error)
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      action,
+      message: `Đã ghi nhận hành động: ${actionName || actionLabel}`
+    })
+
   } catch (error) {
     console.error('❌ Error in parent actions API:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    
     return NextResponse.json({ 
-      error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Internal server error', 
+      details: errorMessage
     }, { status: 500 })
   }
 }
@@ -93,53 +123,65 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const parentId = searchParams.get('parentId')
-
+    
     if (!parentId) {
       return NextResponse.json({ error: 'Parent ID is required' }, { status: 400 })
     }
 
     console.log('📊 Fetching action count for parent:', parentId)
+
     const supabase = createClient()
 
-    const { count: totalActions, error: totalError } = await supabase
+    // Get total action count for this parent
+    const { count: totalCount, error: totalCountError } = await supabase
       .from('action')
       .select('*', { count: 'exact', head: true })
       .eq('parentid', parseInt(parentId))
 
-    if (totalError) {
-      console.error('❌ Error fetching total actions:', totalError)
-      return NextResponse.json({ error: 'Database error' }, { status: 500 })
+    if (totalCountError) {
+      console.error('❌ Error fetching total action count:', totalCountError)
+      return NextResponse.json({ 
+        error: 'Error fetching total action count',
+        details: totalCountError.message 
+      }, { status: 500 })
     }
 
+    // Get today's action count
     const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    
-    const { count: todayActions, error: todayError } = await supabase
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
+
+    const { count: todayCount, error: todayCountError } = await supabase
       .from('action')
       .select('*', { count: 'exact', head: true })
       .eq('parentid', parseInt(parentId))
-      .gte('timestamp', today.toISOString())
+      .gte('timestamp', startOfDay.toISOString())
+      .lt('timestamp', endOfDay.toISOString())
 
-    if (todayError) {
-      console.error('❌ Error fetching today actions:', todayError)
-      return NextResponse.json({ error: 'Database error' }, { status: 500 })
+    if (todayCountError) {
+      console.error('❌ Error fetching today action count:', todayCountError)
+      return NextResponse.json({ 
+        error: 'Error fetching today action count',
+        details: todayCountError.message 
+      }, { status: 500 })
     }
 
-    console.log('✅ Action counts fetched - Total:', totalActions, 'Today:', todayActions)
+    console.log('✅ Action counts fetched - Total:', totalCount, 'Today:', todayCount)
 
-    return NextResponse.json({
+    return NextResponse.json({ 
       success: true,
-      data: {
-        totalActions: totalActions || 0,
-        todayActions: todayActions || 0
-      }
+      totalActions: totalCount || 0,
+      todayActions: todayCount || 0,
+      parentId
     })
 
   } catch (error) {
-    console.error('❌ Error in parent actions GET API:', error)
+    console.error('❌ Error in get actions API:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    
     return NextResponse.json({ 
-      error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Internal server error', 
+      details: errorMessage
     }, { status: 500 })
   }
 }
