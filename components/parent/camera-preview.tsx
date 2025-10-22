@@ -10,6 +10,8 @@ interface CameraPreviewProps {
   childId?: string
 }
 
+type StreamType = 'youtube' | 'raspi' | 'local' | 'none'
+
 export function CameraPreview({ childName, childId }: CameraPreviewProps) {
   const [isStreaming, setIsStreaming] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -21,6 +23,9 @@ export function CameraPreview({ childName, childId }: CameraPreviewProps) {
   const [liveId, setLiveId] = useState<string | null>(null)
   const [isLoadingLiveId, setIsLoadingLiveId] = useState(false)
   const [embedUrl, setEmbedUrl] = useState<string>("")
+  const [streamType, setStreamType] = useState<StreamType>('none')
+  const [raspiStreamUrl, setRaspiStreamUrl] = useState<string>("")
+  const [streamError, setStreamError] = useState<string>("")
 
   useEffect(() => {
     // Check camera permission on mount
@@ -40,6 +45,7 @@ export function CameraPreview({ childName, childId }: CameraPreviewProps) {
 
     const fetchLiveId = async () => {
       setIsLoadingLiveId(true)
+      setStreamError("")
       try {
         const response = await fetch(`/api/camera/live?childId=${childId}`)
         const result = await response.json()
@@ -51,20 +57,37 @@ export function CameraPreview({ childName, childId }: CameraPreviewProps) {
         
         if (liveLink) {
           setLiveId(liveLink)
-          // Parse and set embed URL
-          const parsed = parseVideoEmbedUrl(liveLink)
+          
+          // Detect stream type based on URL
+          const streamTypeDetected = detectStreamType(liveLink)
+          setStreamType(streamTypeDetected)
+          
+          console.log('Detected stream type:', streamTypeDetected)
           console.log('Original URL:', liveLink)
-          console.log('Parsed embed URL:', parsed)
-          if (parsed) {
-            setEmbedUrl(parsed)
-          } else {
-            console.warn('Could not parse video URL:', liveLink)
+          
+          if (streamTypeDetected === 'youtube') {
+            // Parse and set embed URL for YouTube
+            const parsed = parseVideoEmbedUrl(liveLink)
+            console.log('Parsed embed URL:', parsed)
+            if (parsed) {
+              setEmbedUrl(parsed)
+            } else {
+              console.warn('Could not parse YouTube URL:', liveLink)
+              setStreamError('Không thể phân tích URL YouTube')
+            }
+          } else if (streamTypeDetected === 'raspi') {
+            // For Raspi stream, use the URL directly
+            setRaspiStreamUrl(liveLink)
+            console.log('Raspi stream URL set:', liveLink)
           }
         } else {
           console.warn('No liveLink found in API response')
+          setStreamType('none')
         }
       } catch (error) {
         console.error('Error fetching live ID:', error)
+        setStreamError('Lỗi khi tải thông tin camera')
+        setStreamType('none')
       } finally {
         setIsLoadingLiveId(false)
       }
@@ -72,6 +95,34 @@ export function CameraPreview({ childName, childId }: CameraPreviewProps) {
 
     fetchLiveId()
   }, [childId])
+
+  const detectStreamType = (url: string): StreamType => {
+    try {
+      const urlLower = url.toLowerCase()
+      
+      // Check for YouTube
+      if (urlLower.includes('youtube.com') || urlLower.includes('youtu.be')) {
+        return 'youtube'
+      }
+      
+      // Check for Raspberry Pi stream (HTTP/HTTPS with common ports or paths)
+      // Patterns: http://raspberrypi:8080/stream, http://192.168.x.x:8080, etc.
+      if (urlLower.match(/^https?:\/\/.*(:\d+)?(\/stream|\/video|\.mjpg|\.mjpeg)/i)) {
+        return 'raspi'
+      }
+      
+      // Check for IP address with port (likely Raspi)
+      if (urlLower.match(/^https?:\/\/(\d{1,3}\.){3}\d{1,3}(:\d+)?/)) {
+        return 'raspi'
+      }
+      
+      // Default to none
+      return 'none'
+    } catch (error) {
+      console.error('Error detecting stream type:', error)
+      return 'none'
+    }
+  }
 
   const parseVideoEmbedUrl = (url: string): string => {
     try {
@@ -192,11 +243,24 @@ export function CameraPreview({ childName, childId }: CameraPreviewProps) {
                 <p className="text-sm text-gray-600">Đang tải camera live...</p>
               </div>
             </div>
+          ) : streamError ? (
+            // Error state
+            <div className="w-full h-full bg-gradient-to-br from-red-50 to-red-100 flex items-center justify-center">
+              <div className="text-center space-y-4 p-6">
+                <div className="w-16 h-16 bg-red-200 rounded-full flex items-center justify-center mx-auto">
+                  <VideoOffIcon className="w-8 h-8 text-red-600" />
+                </div>
+                <div>
+                  <h4 className="font-medium text-red-700 mb-2">Lỗi kết nối</h4>
+                  <p className="text-sm text-red-600">{streamError}</p>
+                </div>
+              </div>
+            </div>
           ) : isStreaming ? (
             // Local camera stream
             <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover bg-gray-900" />
-          ) : embedUrl ? (
-            // YouTube/Video live stream from database
+          ) : streamType === 'youtube' && embedUrl ? (
+            // YouTube live stream
             <iframe
               src={embedUrl}
               title="Camera Live Stream"
@@ -204,6 +268,32 @@ export function CameraPreview({ childName, childId }: CameraPreviewProps) {
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
             />
+          ) : streamType === 'raspi' && raspiStreamUrl ? (
+            // Raspberry Pi stream (MJPEG or HLS)
+            <div className="w-full h-full relative bg-black">
+              <img 
+                src={raspiStreamUrl}
+                alt="Raspberry Pi Camera Stream"
+                className="w-full h-full object-contain"
+                onError={(e) => {
+                  console.error('Error loading Raspi stream:', e)
+                  setStreamError('Không thể kết nối đến camera Raspberry Pi. Vui lòng kiểm tra URL và kết nối.')
+                }}
+              />
+              {/* Fallback: If image fails, try video element */}
+              <video
+                className="hidden w-full h-full object-contain"
+                autoPlay
+                muted
+                playsInline
+                onError={(e) => {
+                  console.error('Video element also failed:', e)
+                }}
+              >
+                <source src={raspiStreamUrl} type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
+            </div>
           ) : liveId && !embedUrl ? (
             // Link exists but cannot be embedded (e.g., CNN)
             <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex flex-col items-center justify-center p-6">
@@ -246,7 +336,7 @@ export function CameraPreview({ childName, childId }: CameraPreviewProps) {
             </div>
           )}
 
-          {/* Live indicator */}
+          {/* Live indicator - Local stream */}
           {isStreaming && (
             <div className="absolute top-3 left-3 flex items-center gap-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-medium">
               <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
@@ -254,18 +344,26 @@ export function CameraPreview({ childName, childId }: CameraPreviewProps) {
             </div>
           )}
 
-          {/* Recording time */}
+          {/* Recording time - Local stream */}
           {isStreaming && (
             <div className="absolute top-3 right-3 bg-black/50 text-white px-2 py-1 rounded text-xs font-mono">
               {new Date().toLocaleTimeString()}
             </div>
           )}
 
-          {/* Live Stream indicator */}
-          {embedUrl && !isStreaming && (
+          {/* Live Stream indicator - YouTube */}
+          {streamType === 'youtube' && embedUrl && !isStreaming && (
             <div className="absolute top-3 left-3 flex items-center gap-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-medium">
               <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-              LIVE STREAM
+              YOUTUBE LIVE
+            </div>
+          )}
+
+          {/* Live Stream indicator - Raspberry Pi */}
+          {streamType === 'raspi' && raspiStreamUrl && !isStreaming && (
+            <div className="absolute top-3 left-3 flex items-center gap-2 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-medium">
+              <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+              RASPI LIVE
             </div>
           )}
         </div>
@@ -275,10 +373,16 @@ export function CameraPreview({ childName, childId }: CameraPreviewProps) {
           <div className="p-3 bg-gray-50 border-t">
             <div className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-2 text-gray-600">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span>Đang phát live từ YouTube</span>
+                <div className={`w-2 h-2 rounded-full ${streamType === 'raspi' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                <span>
+                  {streamType === 'youtube' && 'Đang phát live từ YouTube'}
+                  {streamType === 'raspi' && 'Đang phát live từ Raspberry Pi'}
+                  {streamType === 'none' && 'Nguồn không xác định'}
+                </span>
               </div>
-              <span className="text-gray-500 text-xs">{liveId}</span>
+              <span className="text-gray-500 text-xs truncate max-w-[200px]" title={liveId}>
+                {liveId}
+              </span>
             </div>
           </div>
         )}
