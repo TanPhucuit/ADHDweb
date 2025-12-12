@@ -41,13 +41,12 @@ export async function GET(request: NextRequest) {
     
     console.log('🔍 ALL data for child', childId, ':', JSON.stringify(allData, null, 2))
     
-    // Query result table directly by childid
+    // Query result table directly by childid (no created_at column)
     let heartRateData = await supabase
       .from('result')
-      .select('bmp, created_at')
+      .select('bmp')
       .eq('childid', parseInt(childId))
       .not('bmp', 'is', null)
-      .order('created_at', { ascending: false })
       .limit(10)
       .then(res => res.data)
 
@@ -69,10 +68,9 @@ export async function GET(request: NextRequest) {
     // 2. Get average restlessness rate from result table
     let restlessnessData = await supabase
       .from('result')
-      .select('restlessness_rate, created_at')
+      .select('restlessness_rate')
       .eq('childid', parseInt(childId))
       .not('restlessness_rate', 'is', null)
-      .order('created_at', { ascending: false })
       .limit(10)
       .then(res => res.data)
 
@@ -97,18 +95,17 @@ export async function GET(request: NextRequest) {
     // 3. Get total focus time from result table (focus_time column)
     let focusTimeData = await supabase
       .from('result')
-      .select('focus_time, created_at')
+      .select('focus_time')
       .eq('childid', parseInt(childId))
       .not('focus_time', 'is', null)
-      .order('created_at', { ascending: false })
       .limit(10)
       .then(res => res.data)
 
     let focusTimeToday = 0
     if (focusTimeData && focusTimeData.length > 0) {
       console.log('📋 RAW focus time data:', JSON.stringify(focusTimeData, null, 2))
-      // Get the first record (latest after DESC order)
-      focusTimeToday = focusTimeData[0]?.focus_time || 0
+      // Get the last record (most recent without order)
+      focusTimeToday = focusTimeData[focusTimeData.length - 1]?.focus_time || 0
       console.log('⏱️ Focus time calculation:', {
         records: focusTimeData.length,
         latestValue: focusTimeToday,
