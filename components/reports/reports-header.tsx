@@ -60,6 +60,26 @@ export function ReportsHeader({ child }: ReportsHeaderProps) {
         backgroundColor: "#ffffff",
         allowTaint: true,
         imageTimeout: 15000,
+        ignoreElements: (element) => {
+          // Skip elements that might cause color parsing issues
+          return element.classList?.contains('recharts-layer') ||
+                 element.tagName === 'VIDEO' ||
+                 element.tagName === 'IFRAME'
+        },
+        onclone: (clonedDoc) => {
+          // Remove problematic CSS that uses lab() color function
+          const style = clonedDoc.createElement('style')
+          style.textContent = `
+            * {
+              color-scheme: normal !important;
+            }
+            [style*="lab("] {
+              color: inherit !important;
+              background-color: transparent !important;
+            }
+          `
+          clonedDoc.head.appendChild(style)
+        }
       })
       
       console.log('✅ Canvas created:', canvas.width, 'x', canvas.height)
