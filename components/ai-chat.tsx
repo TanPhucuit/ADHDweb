@@ -144,9 +144,10 @@ export function AIChat({ context, childId }: AIChatProps) {
 
       setMessages([welcomeMessage])
     } catch (error) {
-      console.error("Error loading child data:", error)
+      console.error("❌ Error loading child data:", error)
+      // Still set fallback data so chat can work
       const fallbackData = {
-        child: { name: "Bạn nhỏ", age: 8 },
+        child: { name: "Bạn nhỏ", age: 8, id: childId },
         currentSession: null,
         todayReport: null,
         rewardProfile: null,
@@ -155,11 +156,11 @@ export function AIChat({ context, childId }: AIChatProps) {
       }
       setChildData(fallbackData)
 
-      const errorMessage: Message = {
-        id: "error",
+      // Simple welcome without error message
+      const welcomeMessage: Message = {
+        id: "welcome",
         role: "assistant",
-        content:
-          "Xin chào! Tôi là Dr. AI, trợ lý ADHD của bạn. Hiện tại có một số vấn đề khi tải dữ liệu, nhưng tôi vẫn có thể hỗ trợ bạn với các câu hỏi về ADHD.",
+        content: "Xin chào! Tôi là Dr. AI, trợ lý ADHD của bạn. Tôi có thể giúp bạn với các câu hỏi về ADHD, lịch trình học tập, và nuôi dạy con.",
         timestamp: new Date(),
         suggestions: [
           "Làm thế nào để cải thiện khả năng tập trung?",
@@ -168,7 +169,7 @@ export function AIChat({ context, childId }: AIChatProps) {
           "Phương pháp Pomodoro có hiệu quả không?",
         ],
       }
-      setMessages([errorMessage])
+      setMessages([welcomeMessage])
     } finally {
       setIsDataLoading(false)
     }
