@@ -50,67 +50,46 @@ export function ReportsHeader({ child }: ReportsHeaderProps) {
         throw new Error("Không tìm thấy nội dung báo cáo")
       }
 
-      console.log('📸 Creating canvas from HTML...')
+      console.log('📸 Preparing PDF export...')
       
-      // Create canvas from HTML with extensive color overrides
-      const canvas = await html2canvas(mainElement, {
+      // Clone main content  
+      const clonedMain = mainElement.cloneNode(true) as HTMLElement
+      document.body.appendChild(clonedMain)
+      clonedMain.style.position = 'absolute'
+      clonedMain.style.left = '-9999px'
+      clonedMain.style.top = '0'
+      
+      // Replace all charts with text summaries
+      const chartContainers = clonedMain.querySelectorAll('[class*="recharts"], canvas, svg')
+      console.log('🔍 Replacing', chartContainers.length, 'charts with text')
+      
+      chartContainers.forEach(chart => {
+        const card = chart.closest('.bg-white')
+        if (card) {
+          const title = card.querySelector('h3, h2')?.textContent || 'Biểu đồ'
+          const textDiv = document.createElement('div')
+          textDiv.style.cssText = 'padding: 24px; border: 2px dashed #d1d5db; border-radius: 8px; background: #f9fafb; margin: 12px 0;'
+          textDiv.innerHTML = `
+            <p style="font-weight: 600; font-size: 18px; margin-bottom: 8px; color: #111827;">${title}</p>
+            <p style="font-size: 14px; color: #6b7280; line-height: 1.5;">📊 Dữ liệu biểu đồ được hiển thị trên giao diện web</p>
+            <p style="font-size: 13px; color: #9ca3af; margin-top: 8px;">Vui lòng truy cập hệ thống để xem chi tiết</p>
+          `
+          chart.parentElement?.replaceChild(textDiv, chart)
+        }
+      })
+      
+      // Create canvas from modified HTML
+      const canvas = await html2canvas(clonedMain, {
         scale: 2,
         useCORS: true,
         logging: false,
         backgroundColor: "#ffffff",
         allowTaint: true,
         imageTimeout: 15000,
-        ignoreElements: (element) => {
-          // Skip elements that might cause color parsing issues
-          return element.classList?.contains('recharts-layer') ||
-                 element.tagName === 'VIDEO' ||
-                 element.tagName === 'IFRAME'
-        },
-        onclone: (clonedDoc) => {
-          // Override ALL problematic CSS colors
-          const style = clonedDoc.createElement('style')
-          style.textContent = `
-            * {
-              color-scheme: normal !important;
-            }
-            /* Override all lab(), lch(), oklab(), oklab() colors */
-            [style*="lab("], 
-            [style*="lch("], 
-            [style*="oklab("], 
-            [style*="oklab("] {
-              color: #000000 !important;
-              background-color: #ffffff !important;
-              border-color: #cccccc !important;
-            }
-            /* Force standard colors on all chart elements */
-            .recharts-layer,
-            .recharts-surface,
-            [class*="recharts"] {
-              color: #000000 !important;
-              fill: currentColor !important;
-              stroke: currentColor !important;
-            }
-            /* Override Tailwind's modern color functions */
-            [class*="bg-"], 
-            [class*="text-"], 
-            [class*="border-"] {
-              color: inherit !important;
-              background-color: inherit !important;
-              border-color: inherit !important;
-            }
-          `
-          clonedDoc.head.appendChild(style)
-          
-          // Remove all inline styles with lab() colors
-          const allElements = clonedDoc.querySelectorAll('*')
-          allElements.forEach(el => {
-            const style = el.getAttribute('style')
-            if (style && (style.includes('lab(') || style.includes('lch(') || style.includes('oklab(') || style.includes('oklab('))) {
-              el.removeAttribute('style')
-            }
-          })
-        }
       })
+      
+      // Clean up
+      document.body.removeChild(clonedMain)
       
       console.log('✅ Canvas created:', canvas.width, 'x', canvas.height)
 

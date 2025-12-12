@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
     // Convert database format to API format
     const children = data?.map(child => ({
       id: child.childid.toString(),
-      parentId: child.parentid.toString(),
+      parentId: child.parentid?.toString() || child.parent_id?.toString() || '',
       name: child.full_name || `${child.first_name || ''} ${child.last_name || ''}`.trim(),
       email: child.email,
       age: child.age || 8,
@@ -85,7 +85,11 @@ export async function GET(request: NextRequest) {
       updatedAt: new Date().toISOString()
     })) || []
 
-    return NextResponse.json({ data: children })
+    // Return in both formats for compatibility
+    return NextResponse.json({ 
+      data: children,
+      children: children // Also return as 'children' for backward compatibility
+    })
   } catch (error) {
     console.error('💥 Server error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
