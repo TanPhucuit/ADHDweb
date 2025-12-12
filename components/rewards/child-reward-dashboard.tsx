@@ -28,15 +28,22 @@ export function ChildRewardDashboard({ child }: ChildRewardDashboardProps) {
   const loadRewardData = async () => {
     try {
       setLoading(true)
-      console.log('🏆 Loading child reward data from API for child:', child.id)
+      const childIdStr = child?.id ? String(child.id) : ''
+      if (!childIdStr) {
+        console.error('❌ No valid child ID')
+        setLoading(false)
+        return
+      }
+      
+      console.log('🏆 Loading child reward data from API for child:', childIdStr)
       
       // Get real reward data from API
-      const rewards = await apiService.getRewardPoints(child.id.toString())
+      const rewards = await apiService.getRewardPoints(childIdStr)
       console.log('🎯 API Reward data:', rewards)
       
       // Create profile from API data
       const rewardProfile: ChildRewardProfile = {
-        childId: child.id.toString(),
+        childId: childIdStr,
         totalPointsEarned: rewards.totalStars,
         totalPointsSpent: 0, // TODO: Get from database when available
         currentPoints: rewards.totalStars,

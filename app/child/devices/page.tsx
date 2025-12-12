@@ -30,8 +30,9 @@ export default function ChildDevicesPage() {
       try {
         const userData = JSON.parse(storedUser)
         if (userData.role === 'child') {
-          setChildId(userData.id.toString())
-          fetchDevices(userData.id.toString())
+          const childIdStr = userData?.id ? String(userData.id) : ''
+          setChildId(childIdStr)
+          if (childIdStr) fetchDevices(childIdStr)
         }
       } catch (e) {
         console.error('Error parsing user:', e)

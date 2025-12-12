@@ -80,7 +80,7 @@ export function HistoricalDataTable({ parentId }: HistoricalDataTableProps) {
     const time = timestamp.toTimeString().substring(0, 5)
 
     return {
-      id: action.id.toString(),
+      id: action.id ? String(action.id) : `action-${Date.now()}`,
       date,
       time,
       actionLabel: action.action_label,

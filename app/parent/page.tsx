@@ -141,7 +141,7 @@ export default function ParentDashboard() {
             <div className="space-y-6">
               {/* Camera Preview */}
               {selectedChild && (
-                <CameraPreview childName={selectedChild.name} childId={selectedChild.id.toString()} />
+                <CameraPreview childName={selectedChild.name} childId={selectedChild?.id ? String(selectedChild.id) : ''} />
               )}
 
               {/* Completion Notifications - Shows completed activities */}
