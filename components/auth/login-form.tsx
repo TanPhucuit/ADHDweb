@@ -157,6 +157,13 @@ export function LoginForm() {
           </Button>
         </form>
 
+        <div className="mt-4 text-center text-sm">
+          <span className="text-muted-foreground">Chưa có tài khoản? </span>
+          <a href="/register" className="text-primary hover:underline font-medium">
+            Đăng ký ngay
+          </a>
+        </div>
+
         <div className="mt-6 p-4 bg-gray-50 rounded-lg">
           <h3 className="text-sm font-medium text-gray-700 mb-3">Available Test Accounts:</h3>
           <div className="text-xs text-gray-600 space-y-1">

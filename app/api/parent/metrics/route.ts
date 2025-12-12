@@ -58,6 +58,7 @@ export async function GET(request: NextRequest) {
       const totalBpm = heartRateData.reduce((sum, item) => sum + (item.bpm || 0), 0)
       averageHeartRate = Math.round(totalBpm / heartRateData.length)
       console.log('💓 Heart rate data points:', heartRateData.length, 'Average:', averageHeartRate)
+      console.log('📋 All heart rate data:', heartRateData)
     } else {
       console.log('⚠️ No heart rate data found')
     }
@@ -84,6 +85,7 @@ export async function GET(request: NextRequest) {
       // Convert decimal to percentage (0.18 -> 18%)
       fidgetLevel = Math.round(averageRestlessness * 100)
       console.log('🔄 Restlessness data points:', restlessnessData.length, 'Average decimal:', averageRestlessness, 'Percentage:', fidgetLevel)
+      console.log('📋 All restlessness data:', restlessnessData)
     } else {
       console.log('⚠️ No restlessness data found')
     }
@@ -105,9 +107,10 @@ export async function GET(request: NextRequest) {
 
     let focusTimeToday = 0
     if (focusTimeData && focusTimeData.length > 0) {
-      // Get the most recent focus_time value
-      focusTimeToday = focusTimeData[focusTimeData.length - 1]?.focus_time || 0
-      console.log('⏱️ Focus time records:', focusTimeData.length, 'Most recent:', focusTimeToday, 'mins')
+      // Get the first record (latest after DESC order)
+      focusTimeToday = focusTimeData[0]?.focus_time || 0
+      console.log('⏱️ Focus time records:', focusTimeData.length, 'Latest value:', focusTimeToday, 'mins')
+      console.log('📋 All focus time data:', focusTimeData)
     } else {
       console.log('⚠️ No focus time data found')
     }

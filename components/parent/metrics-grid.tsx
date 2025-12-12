@@ -23,23 +23,29 @@ export function MetricsGrid({ child, todayReport, currentSession, parentId }: Me
   useEffect(() => {
     const fetchMetrics = async () => {
       if (!child?.id) {
+        console.warn('⚠️ No child ID provided to metrics grid')
         setLoading(false)
         return
       }
 
       try {
+        console.log('🔄 Fetching metrics for child ID:', child.id)
         const response = await fetch(`/api/parent/metrics?childId=${child.id}`)
         if (response.ok) {
           const data = await response.json()
-          console.log('📊 Metrics loaded:', data.metrics)
+          console.log('📊 Metrics API response:', data)
           if (data.metrics) {
+            console.log('✅ Setting metrics:', data.metrics)
             setMetricsData(data.metrics)
+          } else {
+            console.warn('⚠️ No metrics in response')
           }
         } else {
-          console.error('Failed to fetch metrics:', response.status)
+          const errorText = await response.text()
+          console.error('❌ Failed to fetch metrics:', response.status, errorText)
         }
       } catch (error) {
-        console.error('Error fetching metrics:', error)
+        console.error('💥 Error fetching metrics:', error)
       } finally {
         setLoading(false)
       }

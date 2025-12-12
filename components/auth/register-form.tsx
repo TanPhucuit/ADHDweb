@@ -45,11 +45,51 @@ export function RegisterForm() {
 
     setIsLoading(true)
 
-    // Simulate registration process
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    try {
+      // Call register API
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          role: role,
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          age: formData.age,
+          gender: formData.gender,
+          parentName: formData.parentName,
+          parentEmail: formData.parentEmail,
+          device1Uid: formData.device1Uid,
+          device2Uid: formData.device2Uid,
+        }),
+      })
 
-    // For demo purposes, redirect to pairing
-    window.location.href = "/pairing"
+      const data = await response.json()
+
+      if (!response.ok) {
+        alert(data.error || 'Đăng ký thất bại')
+        setIsLoading(false)
+        return
+      }
+
+      // Save user to localStorage
+      localStorage.setItem('user', JSON.stringify(data.user))
+      
+      alert(data.message || 'Đăng ký thành công!')
+
+      // Redirect based on role
+      if (role === 'parent') {
+        window.location.href = '/parent'
+      } else {
+        window.location.href = '/child'
+      }
+    } catch (error) {
+      console.error('Registration error:', error)
+      alert('Lỗi kết nối. Vui lòng thử lại!')
+      setIsLoading(false)
+    }
   }
 
   const updateFormData = (field: string, value: string | boolean) => {
