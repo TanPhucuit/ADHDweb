@@ -33,13 +33,18 @@ export async function GET(request: NextRequest) {
     
     // IMPORTANT: Query by device_id, not child_id
     // Get devices for this child first
-    const { data: devices } = await supabase
+    const { data: devices, error: devicesError } = await supabase
       .from('devices')
-      .select('id')
+      .select('id, child_id, device_name, device_uid')
       .eq('child_id', parseInt(childId))
     
+    if (devicesError) {
+      console.error('❌ Error fetching devices:', devicesError)
+    }
+    
+    console.log('📱 Raw devices data:', devices)
     const deviceIds = devices?.map(d => d.id) || []
-    console.log('📱 Found devices for child:', deviceIds)
+    console.log('📱 Extracted device IDs for child', childId, ':', deviceIds)
     
     let heartRateData = null
     if (deviceIds.length > 0) {

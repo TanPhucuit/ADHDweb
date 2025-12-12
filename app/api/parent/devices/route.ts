@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     // Get all children for this parent - try both column names
     let children = await supabase
       .from('child')
-      .select('id, name')
+      .select('childid, full_name')
       .eq('parentid', parseInt(parentId))
       .then(res => res.data)
     
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     if (!children || children.length === 0) {
       children = await supabase
         .from('child')
-        .select('id, name')
+        .select('childid, full_name')
         .eq('parent_id', parseInt(parentId))
         .then(res => res.data)
     }
@@ -41,7 +41,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all devices for these children
-    const childIds = children.map(c => c.id)
+    const childIds = children.map(c => c.childid)
+    console.log('🔍 Looking for devices with child_ids:', childIds)
     const { data: devices, error: devicesError } = await supabase
       .from('devices')
       .select('*')
@@ -58,14 +59,14 @@ export async function GET(request: NextRequest) {
 
     // Combine devices with child names and ensure device_type is set
     const devicesWithChildNames = (devices || []).map(device => {
-      const child = children.find(c => c.id === device.child_id)
+      const child = children.find(c => c.childid === device.child_id)
       // Default to smartwatch if device_type is missing
       const deviceType = device.device_type || (
         device.device_name?.toLowerCase().includes('camera') ? 'smartcamera' : 'smartwatch'
       )
       return {
         ...device,
-        childName: child?.name || 'Unknown',
+        childName: child?.full_name || 'Unknown',
         device_type: deviceType,
       }
     })
