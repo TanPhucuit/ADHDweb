@@ -10,7 +10,10 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 // Server-side API helper with better error handling
 export function createServerSupabaseClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  
+  const key = serviceRoleKey || anonKey
 
   if (!url) {
     console.warn('⚠️ NEXT_PUBLIC_SUPABASE_URL is not set, using fallback')
@@ -22,7 +25,14 @@ export function createServerSupabaseClient() {
     return createClient(url, 'placeholder-key')
   }
 
-  return createClient(url, key)
+  console.log('🔑 Using Supabase key type:', serviceRoleKey ? 'SERVICE_ROLE' : 'ANON')
+
+  return createClient(url, key, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  })
 }
 
 // Database types

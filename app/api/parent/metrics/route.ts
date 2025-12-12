@@ -41,6 +41,14 @@ export async function GET(request: NextRequest) {
     console.log('🔍 Query error:', allDataError)
     console.log('🔍 ALL data for child', childId, ':', JSON.stringify(allData, null, 2))
     
+    // Also get sample data to see what childids exist
+    const { data: sampleData } = await supabase
+      .from('result')
+      .select('childid, bmp, focus_time, restlessness_rate')
+      .limit(10)
+    
+    console.log('📋 Sample data from result table:', JSON.stringify(sampleData, null, 2))
+    
     // If still no data, return it in response for debugging
     if (!allData || allData.length === 0) {
       return NextResponse.json({ 
@@ -49,7 +57,8 @@ export async function GET(request: NextRequest) {
         debug: {
           childId,
           queryError: allDataError?.message || null,
-          attemptedQuery: `SELECT * FROM result WHERE childid = ${childId}`
+          attemptedQuery: `SELECT * FROM result WHERE childid = ${childId}`,
+          sampleChildIds: sampleData?.map(d => d.childid) || []
         }
       })
     }

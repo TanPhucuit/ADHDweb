@@ -40,36 +40,55 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Get all devices for these children
+    // Get all devices for these children from both smartwatch and smartcamera tables
     const childIds = children.map(c => c.childid)
     console.log('🔍 Looking for devices with child_ids:', childIds)
     
-    // Try child_id column first
-    let { data: devices, error: devicesError } = await supabase
-      .from('devices')
+    // Query smartwatch table
+    const { data: smartwatches, error: watchError } = await supabase
+      .from('smartwatch')
       .select('*')
-      .in('child_id', childIds)
+      .in('childid', childIds)
     
-    // If error or no results, try childid column
-    if (devicesError || !devices || devices.length === 0) {
-      console.log('🔄 Trying childid column instead')
-      const result = await supabase
-        .from('devices')
-        .select('*')
-        .in('childid', childIds)
-      devices = result.data
-      devicesError = result.error
-    }
-
-    if (devicesError) {
-      console.error('❌ Error fetching devices:', devicesError)
-      return NextResponse.json({ 
-        error: 'Error fetching devices',
-        details: devicesError.message 
-      }, { status: 500 })
+    if (watchError) {
+      console.error('❌ Error fetching smartwatches:', watchError)
     }
     
-    console.log('📱 Raw devices fetched:', devices?.length || 0, devices)
+    // Query smartcamera table  
+    const { data: cameras, error: cameraError } = await supabase
+      .from('smartcamera')
+      .select('*')
+      .in('childid', childIds)
+    
+    if (cameraError) {
+      console.error('❌ Error fetching cameras:', cameraError)
+    }
+    
+    console.log('📱 Smartwatches found:', smartwatches?.length || 0)
+    console.log('📷 Cameras found:', cameras?.length || 0)
+    
+    // Combine devices from both tables
+    const devices = [
+      ...(smartwatches || []).map(w => ({
+        id: w.deviceid,
+        child_id: w.childid,
+        device_uid: w.deviceid?.toString(),
+        device_name: 'SmartWatch',
+        device_type: 'smartwatch',
+        bpm: w.bpm,
+        ring_status: w.ring_status
+      })),
+      ...(cameras || []).map(c => ({
+        id: c.deviceid,
+        child_id: c.childid,
+        device_uid: c.deviceid,
+        device_name: 'SmartCamera',
+        device_type: 'smartcamera',
+        liveid: c.liveid
+      }))
+    ]
+    
+    console.log('📱 Total devices combined:', devices.length)
 
     // Combine devices with child names and ensure device_type is set
     const devicesWithChildNames = (devices || []).map(device => {
