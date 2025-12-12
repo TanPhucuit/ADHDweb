@@ -50,14 +50,23 @@ export async function GET(request: NextRequest) {
       }, { status: 500 })
     }
 
-    // Combine devices with child names
+    // Combine devices with child names and ensure device_type is set
     const devicesWithChildNames = (devices || []).map(device => {
       const child = children.find(c => c.id === device.child_id)
+      // Default to smartwatch if device_type is missing
+      const deviceType = device.device_type || (
+        device.device_name?.toLowerCase().includes('camera') ? 'smartcamera' : 'smartwatch'
+      )
       return {
         ...device,
-        childName: child?.name || 'Unknown'
+        childName: child?.name || 'Unknown',
+        device_type: deviceType,
       }
     })
+
+    console.log(`📱 Found ${devicesWithChildNames.length} devices:`, 
+      devicesWithChildNames.map(d => `${d.device_name} (${d.device_type})`).join(', ')
+    )
 
     return NextResponse.json({ 
       success: true,

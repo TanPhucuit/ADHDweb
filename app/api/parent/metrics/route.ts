@@ -12,10 +12,21 @@ export async function GET(request: NextRequest) {
 
     const supabase = createServerSupabaseClient()
 
-    // Get today's date range
+    // Get today's date range (Vietnam timezone GMT+7)
     const today = new Date()
-    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
+    // Set to Vietnam timezone
+    const vietnamOffset = 7 * 60 // GMT+7 in minutes
+    const localOffset = today.getTimezoneOffset()
+    const vietnamTime = new Date(today.getTime() + (vietnamOffset + localOffset) * 60 * 1000)
+    
+    const startOfDay = new Date(vietnamTime.getFullYear(), vietnamTime.getMonth(), vietnamTime.getDate())
+    const endOfDay = new Date(vietnamTime.getFullYear(), vietnamTime.getMonth(), vietnamTime.getDate() + 1)
+    
+    console.log('📅 Date range:', {
+      startOfDay: startOfDay.toISOString(),
+      endOfDay: endOfDay.toISOString(),
+      vietnamTime: vietnamTime.toISOString()
+    })
 
     // 1. Get average heart rate (BPM) from result table
     console.log('📊 Fetching heart rate for child:', childId)

@@ -61,6 +61,7 @@ export async function POST(request: NextRequest) {
         child_id: parseInt(childId),
         device_uid: device_uid || '',
         device_name: device_name || 'Thiết bị mới',
+        device_type: device_name.toLowerCase().includes('camera') ? 'smartcamera' : 'smartwatch',
       })
       .select()
       .single()
