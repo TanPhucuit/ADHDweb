@@ -21,12 +21,12 @@ export function EnhancedMetricsGrid({ child, todayReport, currentSession }: Enha
   const { data: medicationData, isLoading: medLoading } = useMedication(child.id)
   const { user } = useAuth()
 
-  const [metrics, setMetrics] = useState({
+  const [metricsData, setMetricsData] = useState({
     focusTimeToday: 0,
     averageHeartRate: 0,
     fidgetLevel: 0,
   })
-  const [loading, setLoading] = useState(true)
+  const [metricsLoading, setMetricsLoading] = useState(true)
 
   useEffect(() => {
     const fetchMetrics = async () => {
@@ -34,12 +34,12 @@ export function EnhancedMetricsGrid({ child, todayReport, currentSession }: Enha
         const response = await fetch(`/api/parent/metrics?childId=${child.id}`)
         if (response.ok) {
           const data = await response.json()
-          setMetrics(data.metrics)
+          setMetricsData(data.metrics)
         }
       } catch (error) {
         console.error('Error fetching metrics:', error)
       } finally {
-        setLoading(false)
+        setMetricsLoading(false)
       }
     }
 
@@ -48,7 +48,7 @@ export function EnhancedMetricsGrid({ child, todayReport, currentSession }: Enha
     }
   }, [child?.id])
 
-  const { focusTimeToday, averageHeartRate, fidgetLevel } = metrics
+  const { focusTimeToday, averageHeartRate, fidgetLevel } = metricsData
   const interventionsToday = 3 // Mock: 3 interventions today
   const focusGoal = child.settings.focusGoalMinutes || 90
   const medicationCompliance = 85 // Mock: 85% medication compliance

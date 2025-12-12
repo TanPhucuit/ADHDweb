@@ -13,7 +13,7 @@ interface MetricsGridProps {
 }
 
 export function MetricsGrid({ child, todayReport, currentSession, parentId }: MetricsGridProps) {
-  const [metrics, setMetrics] = useState({
+  const [metricsData, setMetricsData] = useState({
     focusTimeToday: 0,
     averageHeartRate: 0,
     fidgetLevel: 0,
@@ -26,7 +26,7 @@ export function MetricsGrid({ child, todayReport, currentSession, parentId }: Me
         const response = await fetch(`/api/parent/metrics?childId=${child.id}`)
         if (response.ok) {
           const data = await response.json()
-          setMetrics(data.metrics)
+          setMetricsData(data.metrics)
         }
       } catch (error) {
         console.error('Error fetching metrics:', error)
@@ -40,7 +40,7 @@ export function MetricsGrid({ child, todayReport, currentSession, parentId }: Me
     }
   }, [child?.id])
 
-  const { focusTimeToday, averageHeartRate, fidgetLevel } = metrics
+  const { focusTimeToday, averageHeartRate, fidgetLevel } = metricsData
   const focusGoal = child.settings.focusGoalMinutes || 90
 
   // Use real intervention count from API
