@@ -45,11 +45,11 @@ export async function GET(request: NextRequest) {
     if (deviceIds.length > 0) {
       heartRateData = await supabase
         .from('result')
-        .select('bpm')
+        .select('bpm, created_at')
         .in('device_id', deviceIds)
-        .gte('created_at', startOfDay.toISOString())
-        .lt('created_at', endOfDay.toISOString())
         .not('bpm', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(10)
         .then(res => res.data)
     }
 
@@ -69,11 +69,11 @@ export async function GET(request: NextRequest) {
     if (deviceIds.length > 0) {
       restlessnessData = await supabase
         .from('result')
-        .select('restlessness_rate')
+        .select('restlessness_rate, created_at')
         .in('device_id', deviceIds)
-        .gte('created_at', startOfDay.toISOString())
-        .lt('created_at', endOfDay.toISOString())
         .not('restlessness_rate', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(10)
         .then(res => res.data)
     }
 
@@ -95,11 +95,11 @@ export async function GET(request: NextRequest) {
     if (deviceIds.length > 0) {
       focusTimeData = await supabase
         .from('result')
-        .select('focus_time')
+        .select('focus_time, created_at')
         .in('device_id', deviceIds)
-        .gte('created_at', startOfDay.toISOString())
-        .lt('created_at', endOfDay.toISOString())
         .not('focus_time', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(10)
         .then(res => res.data)
     }
 
@@ -112,26 +112,7 @@ export async function GET(request: NextRequest) {
       console.log('⚠️ No focus time data found')
     }
 
-    // If no data found, use demo data to show UI works
-    // Check if we actually fetched data (arrays exist), not just if values > 0
-    const hasData = (heartRateData && heartRateData.length > 0) || 
-                    (restlessnessData && restlessnessData.length > 0) || 
-                    (focusTimeData && focusTimeData.length > 0)
-    
-    if (!hasData) {
-      console.log('⚠️ No real data found, using demo data to demonstrate features')
-      return NextResponse.json({ 
-        success: true,
-        metrics: {
-          averageHeartRate: 78, // Demo BPM
-          fidgetLevel: 35, // Demo restlessness %
-          focusTimeToday: 45, // Demo minutes
-        },
-        isDemo: true
-      })
-    }
-    
-    console.log('✅ Metrics fetched (real data):', { 
+    console.log('✅ Metrics fetched from database:', { 
       averageHeartRate, 
       fidgetLevel, 
       focusTimeToday,
