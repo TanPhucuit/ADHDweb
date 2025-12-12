@@ -90,16 +90,25 @@ export default function ReportsPage() {
       if (childrenData && childrenData.length > 0) {
         const childData = childrenData[0] // Use first child
         console.log("[v0] Using first child:", childData)
+        
+        // Validate childData has required id
+        if (!childData || !childData.id) {
+          console.error('[v0] Child data missing ID:', childData)
+          setIsLoading(false)
+          return
+        }
+        
         setChild(childData)
 
         const days = dateRange === "today" ? 1 : dateRange === "7days" ? 7 : 30
-        console.log("[v0] Loading real data for child:", childData.id, "for", days, "days")
+        const childIdStr = String(childData.id)
+        console.log("[v0] Loading real data for child:", childIdStr, "for", days, "days")
 
         // Load real data from APIs
         const [activities, medications, rewards] = await Promise.all([
-          apiService.getScheduleActivities(childData.id.toString()),
-          apiService.getMedicationLogs(childData.id.toString()),
-          apiService.getRewardPoints(childData.id.toString())
+          apiService.getScheduleActivities(childIdStr),
+          apiService.getMedicationLogs(childIdStr),
+          apiService.getRewardPoints(childIdStr)
         ])
 
         console.log("[v0] Real data loaded:", { 
@@ -113,8 +122,8 @@ export default function ReportsPage() {
         const totalFocusTime = completedActivities.length * 25 // 25 minutes per activity
 
         const mockReports: DailyReport[] = Array.from({ length: days }, (_, i) => ({
-          id: `report-${childData.id}-${new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}`,
-          childId: childData.id.toString(),
+          id: `report-${childIdStr}-${new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}`,
+          childId: childIdStr,
           date: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           totalFocusTime: Math.max(5, totalFocusTime - i * 5), // Decrease over time
           averageFocusScore: Math.max(60, 85 - i * 2),
@@ -132,7 +141,7 @@ export default function ReportsPage() {
 
         const mockSessions: FocusSession[] = completedActivities.slice(0, 10).map((activity: any, index: number) => ({
           id: `session-${activity.id}`,
-          userId: childData.id.toString(),
+          userId: childIdStr,
           subject: activity.subject || activity.title,
           activityType: 'schedule',
           startTime: new Date(Date.now() - index * 2 * 60 * 60 * 1000),
@@ -196,8 +205,8 @@ export default function ReportsPage() {
         <DateRangeSelector selectedRange={dateRange} onRangeChange={setDateRange} />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <FocusScoreChart sessions={sessions} reports={reports} childId={child.id.toString()} />
-          <LearningPerformanceChart childId={child.id.toString()} />
+          <FocusScoreChart sessions={sessions} reports={reports} childId={child?.id ? String(child.id) : ''} />
+          <LearningPerformanceChart childId={child?.id ? String(child.id) : ''} />
         </div>
 
         <TimeDistributionChart parentId={user?.id ? String(user.id) : ''} />

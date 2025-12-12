@@ -51,7 +51,8 @@ export function AIChat({ context, childId }: AIChatProps) {
 
   const checkApiConfiguration = () => {
     if (typeof window !== "undefined") {
-      const apiKey = localStorage.getItem("openai_api_key") || process.env.OPENAI_API_KEY
+      const apiKey = localStorage.getItem("openai_api_key") || process.env.NEXT_PUBLIC_OPENAI_API_KEY
+      console.log('🔑 Dr.AI API key check:', !!apiKey, apiKey ? 'Found' : 'Missing')
       setApiConfigured(!!apiKey)
     }
   }

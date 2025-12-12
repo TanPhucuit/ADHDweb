@@ -71,11 +71,14 @@ export async function generateAIResponse(messages: OpenAIMessage[]): Promise<str
 
     // Fallback to environment variables if localStorage is empty
     if (!apiKey) {
-      apiKey = process.env.OPENAI_API_KEY || ""
+      // Use NEXT_PUBLIC_ prefix for client-side access
+      apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY || ""
     }
     if (!model) {
       model = process.env.OPENAI_MODEL || "gpt-4o-mini"
     }
+    
+    console.log('🔑 OpenAI client - API key status:', !!apiKey, 'Model:', model)
 
     if (!apiKey) {
       throw new Error("OpenAI API key not configured")
