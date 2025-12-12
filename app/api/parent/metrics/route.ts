@@ -149,6 +149,14 @@ export async function GET(request: NextRequest) {
         fidgetLevel,
         focusTimeToday,
       },
+      debug: {
+        childId,
+        deviceIds,
+        devicesFound: devices?.length || 0,
+        heartRateRecords: heartRateData?.length || 0,
+        restlessnessRecords: restlessnessData?.length || 0,
+        focusTimeRecords: focusTimeData?.length || 0,
+      },
       isDemo: false
     })
 
