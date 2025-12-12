@@ -50,13 +50,19 @@ export function ReportsHeader({ child }: ReportsHeaderProps) {
         throw new Error("Không tìm thấy nội dung báo cáo")
       }
 
+      console.log('📸 Creating canvas from HTML...')
+      
       // Create canvas from HTML
       const canvas = await html2canvas(mainElement, {
         scale: 2,
         useCORS: true,
         logging: false,
         backgroundColor: "#ffffff",
+        allowTaint: true,
+        imageTimeout: 15000,
       })
+      
+      console.log('✅ Canvas created:', canvas.width, 'x', canvas.height)
 
       // Create PDF
       const pdf = new jsPDF({
@@ -84,9 +90,12 @@ export function ReportsHeader({ child }: ReportsHeaderProps) {
       }
 
       // Save PDF
-      const fileName = `ADHD-Report-${child.name}-${new Date().toISOString().split("T")[0]}.pdf`
+      const fileName = `ADHD-Report-${child.name.replace(/[^a-zA-Z0-9]/g, '_')}-${new Date().toISOString().split("T")[0]}.pdf`
+      console.log('💾 Saving PDF:', fileName)
+      
       pdf.save(fileName)
-
+      
+      console.log('✅ PDF saved successfully')
       toast({
         title: "Xuất PDF thành công!",
         description: `Đã lưu file ${fileName}`,

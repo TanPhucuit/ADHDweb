@@ -391,11 +391,16 @@ export function AIChat({ context, childId }: AIChatProps) {
         }),
       })
 
+      console.log('📡 Sending chat request...')
+      
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        const errorData = await response.json().catch(() => ({}))
+        console.error('❌ Chat API error:', response.status, errorData)
+        throw new Error(errorData.content || `HTTP ${response.status}: ${response.statusText}`)
       }
 
       const data = await response.json()
+      console.log('✅ Chat response received:', data)
 
       // Generate action cards based on user message
       const actionCards = generateActionCards(currentInput, childData)

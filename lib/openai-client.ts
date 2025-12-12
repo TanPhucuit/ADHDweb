@@ -95,6 +95,8 @@ export async function generateAIResponse(messages: OpenAIMessage[]): Promise<str
       ...messages.filter((msg) => msg.role !== "system" || msg.content.includes("Thông tin về trẻ:")),
     ]
 
+    console.log('📡 Calling OpenAI API with', processedMessages.length, 'messages')
+    
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -111,12 +113,16 @@ export async function generateAIResponse(messages: OpenAIMessage[]): Promise<str
       }),
     })
 
+    console.log('📨 OpenAI API response status:', response.status)
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
+      console.error('❌ OpenAI API error:', errorData)
       throw new Error(`OpenAI API error: ${response.status} - ${errorData.error?.message || "Unknown error"}`)
     }
 
     const data: OpenAIResponse = await response.json()
+    console.log('✅ OpenAI response received, length:', data.choices?.[0]?.message?.content?.length || 0)
 
     if (!data.choices || data.choices.length === 0) {
       throw new Error("No response from OpenAI")
