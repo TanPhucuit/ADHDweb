@@ -78,7 +78,13 @@ export default function ReportsPage() {
     try {
       console.log("[v0] Getting children data for parent:", user!.id)
       // Use real API to get children
-      const childrenData = await apiService.getParentChildren(user!.id.toString())
+      const parentIdStr = user?.id ? String(user.id) : ''
+      if (!parentIdStr) {
+        console.error('[v0] No valid parent ID')
+        setIsLoading(false)
+        return
+      }
+      const childrenData = await apiService.getParentChildren(parentIdStr)
       console.log("[v0] Children data received:", childrenData?.length || 0, "children", childrenData)
 
       if (childrenData && childrenData.length > 0) {
@@ -194,9 +200,9 @@ export default function ReportsPage() {
           <LearningPerformanceChart childId={child.id.toString()} />
         </div>
 
-        <TimeDistributionChart parentId={user!.id.toString()} />
+        <TimeDistributionChart parentId={user?.id ? String(user.id) : ''} />
 
-        <HistoricalDataTable parentId={user!.id.toString()} />
+        <HistoricalDataTable parentId={user?.id ? String(user.id) : ''} />
       </main>
     </div>
   )

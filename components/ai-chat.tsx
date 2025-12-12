@@ -35,7 +35,7 @@ interface AIChatProps {
   childId?: string
 }
 
-export function AIChat({ context, childId = "child-1" }: AIChatProps) {
+export function AIChat({ context, childId }: AIChatProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -58,12 +58,21 @@ export function AIChat({ context, childId = "child-1" }: AIChatProps) {
 
   // Load child data and initialize chat
   useEffect(() => {
-    loadChildData()
+    if (childId) {
+      loadChildData()
+    }
   }, [childId])
 
   const loadChildData = async () => {
+    if (!childId) {
+      console.error('❌ Dr.AI: No childId provided')
+      setIsDataLoading(false)
+      return
+    }
+    
     try {
       setIsDataLoading(true)
+      console.log('🤖 Dr.AI: Loading data for child:', childId)
       
       // Load real data from API instead of dataStore
       let child = null

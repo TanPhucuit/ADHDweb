@@ -14,17 +14,29 @@ export default function ParentChatPage() {
   const [children, setChildren] = useState<any[]>([])
   const [selectedChild, setSelectedChild] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [parentUser, setParentUser] = useState<any>(null)
 
   useEffect(() => {
     const loadData = async () => {
       try {
         console.log("[v0] Loading parent chat data...")
-        const user = dataStore.getCurrentUser()
-        if (user) {
-          const childrenData = dataStore.getChildrenByParent(user.id)
-          setChildren(childrenData)
-          if (childrenData.length > 0) {
-            setSelectedChild(childrenData[0])
+        // Get user from localStorage (real auth)
+        const storedUser = localStorage.getItem('adhd-dashboard-user')
+        if (storedUser) {
+          const userData = JSON.parse(storedUser)
+          setParentUser(userData)
+          console.log('🔐 Parent user loaded for chat:', userData)
+          
+          // Fetch real children from API
+          const response = await fetch(`/api/parent/children?parentId=${userData.id}`)
+          if (response.ok) {
+            const data = await response.json()
+            const childrenData = data.children || []
+            setChildren(childrenData)
+            if (childrenData.length > 0) {
+              setSelectedChild(childrenData[0])
+              console.log('👶 Selected child for Dr.AI:', childrenData[0])
+            }
           }
         }
       } catch (error) {
@@ -136,7 +148,7 @@ export default function ParentChatPage() {
                   context={
                     selectedChild ? `Đang tư vấn cho trẻ: ${selectedChild.name}, tuổi: ${selectedChild.age}` : undefined
                   }
-                  childId={selectedChild?.id}
+                  childId={selectedChild?.id ? String(selectedChild.id) : undefined}
                 />
               </CardContent>
             </Card>
