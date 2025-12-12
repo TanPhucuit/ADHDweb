@@ -1,64 +1,94 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Search, ArrowUpDown, Filter } from "lucide-react"
-import type { FocusSession, DailyReport } from "@/lib/types"
 
 interface HistoricalDataTableProps {
-  sessions: FocusSession[]
-  reports: DailyReport[]
+  parentId: string
+}
+
+interface ParentAction {
+  id: number
+  parentid: number
+  action_label: string
+  timestamp: string
 }
 
 interface HistoricalData {
   id: string
   date: string
   time: string
-  activity: string
-  focusScore: number
-  heartRate: number
-  interventions: number
+  actionLabel: string
+  actionName: string
   status: "focused" | "distracted" | "break"
 }
 
-export function HistoricalDataTable({ sessions, reports }: HistoricalDataTableProps) {
+export function HistoricalDataTable({ parentId }: HistoricalDataTableProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [sortField, setSortField] = useState<keyof HistoricalData>("date")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
+  const [actions, setActions] = useState<ParentAction[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const historicalData: HistoricalData[] =
-    sessions && sessions.length > 0
-      ? sessions.map((session) => {
-          const startTimeStr =
-            typeof session.startTime === "string"
-              ? session.startTime
-              : session.startTime instanceof Date
-                ? session.startTime.toISOString()
-                : new Date().toISOString()
+  useEffect(() => {
+    const fetchActions = async () => {
+      try {
+        setLoading(true)
+        const response = await fetch(`/api/parent/actions/list?parentId=${parentId}`)
+        if (response.ok) {
+          const data = await response.json()
+          setActions(data.actions || [])
+        }
+      } catch (error) {
+        console.error('Error fetching actions:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
 
-          const [datePart, timePart] = startTimeStr.split("T")
+    if (parentId) {
+      fetchActions()
+    }
+  }, [parentId])
 
-          return {
-            id: session.id,
-            date: datePart || "",
-            time: timePart?.substring(0, 5) || "",
-            activity: session.subject || 'Không xác định',
-            focusScore: session.focusScore || 60,
-            heartRate: 90, // Default heart rate
-            interventions: 0, // Default to 0 since interventions might not exist
-            status:
-              (session.focusScore || 60) >= 70 ? "focused" : (session.focusScore || 60) >= 40 ? "distracted" : "break",
-          }
-        })
-      : []
+  // Map action labels to Vietnamese names
+  const actionLabelMap: Record<string, string> = {
+    'nhac-tap-trung': 'Nhắc nhở tập trung',
+    'khen-ngoi': 'Khen ngợi',
+    'dong-vien': 'Động viên',
+    'nghi-giai-lao': 'Nghỉ giải lao',
+  }
+
+  // Determine status based on action label
+  const getStatusFromAction = (label: string): "focused" | "distracted" | "break" => {
+    if (label === 'nhac-tap-trung') return 'distracted'
+    if (label === 'nghi-giai-lao') return 'break'
+    return 'focused'
+  }
+
+  const historicalData: HistoricalData[] = actions.map((action) => {
+    const timestamp = new Date(action.timestamp)
+    const date = timestamp.toISOString().split('T')[0]
+    const time = timestamp.toTimeString().substring(0, 5)
+
+    return {
+      id: action.id.toString(),
+      date,
+      time,
+      actionLabel: action.action_label,
+      actionName: actionLabelMap[action.action_label] || action.action_label,
+      status: getStatusFromAction(action.action_label),
+    }
+  })
 
   const filteredData = historicalData.filter(
     (item) =>
-      item.activity.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.actionName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.date.includes(searchTerm) ||
       item.time.includes(searchTerm),
   )
@@ -146,60 +176,30 @@ export function HistoricalDataTable({ sessions, reports }: HistoricalDataTablePr
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                   </Button>
                 </TableHead>
-                <TableHead>Hoạt động</TableHead>
-                <TableHead>
-                  <Button
-                    onClick={() => handleSort("focusScore")}
-                    className="h-auto p-0 font-medium hover:bg-transparent bg-transparent border-none"
-                  >
-                    Điểm tập trung
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </TableHead>
-                <TableHead>Nhịp tim</TableHead>
-                <TableHead>Can thiệp</TableHead>
+                <TableHead>Hành động</TableHead>
                 <TableHead>Trạng thái</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedData.length > 0 ? (
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                    Đang tải...
+                  </TableCell>
+                </TableRow>
+              ) : sortedData.length > 0 ? (
                 sortedData.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">{new Date(item.date).toLocaleDateString("vi-VN")}</TableCell>
                     <TableCell>{item.time}</TableCell>
-                    <TableCell>{item.activity}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`font-medium ${
-                            item.focusScore >= 70
-                              ? "text-primary"
-                              : item.focusScore >= 40
-                                ? "text-yellow-600"
-                                : "text-destructive"
-                          }`}
-                        >
-                          {item.focusScore > 0 ? `${item.focusScore}%` : "-"}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>{item.heartRate} BPM</TableCell>
-                    <TableCell>
-                      {item.interventions > 0 ? (
-                        <Badge className="border text-xs">
-                          {item.interventions}
-                        </Badge>
-                      ) : (
-                        "-"
-                      )}
-                    </TableCell>
+                    <TableCell>{item.actionName}</TableCell>
                     <TableCell>{getStatusBadge(item.status)}</TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                    {!sessions || sessions.length === 0 ? "Chưa có dữ liệu phiên học nào" : "Không có dữ liệu phù hợp"}
+                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                    {actions.length === 0 ? "Chưa có dữ liệu hành động nào" : "Không có dữ liệu phù hợp"}
                   </TableCell>
                 </TableRow>
               )}

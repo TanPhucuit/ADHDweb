@@ -10,23 +10,31 @@ interface FocusScoreChartProps {
 }
 
 export function FocusScoreChart({ sessions, reports }: FocusScoreChartProps) {
-  const chartData = (sessions || [])
-    .filter((session) => session.endTime) // Only completed sessions
-    .slice(0, 20) // Last 20 sessions
-    .map((session) => ({
-      time: session.startTime ? session.startTime.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) : "00:00",
-      date: session.startTime ? session.startTime.toLocaleDateString("vi-VN") : "",
-      score: session.focusScore || 0,
-      intervention: null, // Interventions not implemented yet
-      subject: session.subject || 'Không xác định',
-      activity: session.subject || 'Không xác định', // Use subject as activity
-      heartRate: 90, // Default heart rate
-      duration: session.endTime && session.startTime ? Math.round((session.endTime.getTime() - session.startTime.getTime()) / 60000) : 0,
-    }))
-    .reverse() // Show chronologically
+  // Use mock data for demo
+  const chartData = [
+    { time: "08:00", date: "20/01/2025", score: 65, intervention: null, subject: "Toán học", activity: "Giải toán", heartRate: 78, duration: 25 },
+    { time: "09:00", date: "20/01/2025", score: 72, intervention: "Nhắc nhở giữ tư thế ngồi", subject: "Văn học", activity: "Đọc sách", heartRate: 75, duration: 30 },
+    { time: "10:30", date: "20/01/2025", score: 68, intervention: null, subject: "Toán học", activity: "Luyện tập", heartRate: 80, duration: 20 },
+    { time: "13:00", date: "20/01/2025", score: 75, intervention: null, subject: "Tiếng Anh", activity: "Học từ vựng", heartRate: 76, duration: 25 },
+    { time: "14:00", date: "20/01/2025", score: 70, intervention: "Nghỉ giải lao 5 phút", subject: "Khoa học", activity: "Thí nghiệm", heartRate: 82, duration: 35 },
+    { time: "15:30", date: "21/01/2025", score: 78, intervention: null, subject: "Toán học", activity: "Bài tập nâng cao", heartRate: 74, duration: 30 },
+    { time: "16:00", date: "21/01/2025", score: 73, intervention: null, subject: "Lịch sử", activity: "Đọc hiểu", heartRate: 79, duration: 25 },
+    { time: "08:00", date: "22/01/2025", score: 80, intervention: null, subject: "Toán học", activity: "Giải toán", heartRate: 73, duration: 40 },
+    { time: "09:30", date: "22/01/2025", score: 76, intervention: "Khuyến khích tập trung", subject: "Văn học", activity: "Viết bài", heartRate: 77, duration: 30 },
+    { time: "11:00", date: "22/01/2025", score: 82, intervention: null, subject: "Tiếng Anh", activity: "Nghe hiểu", heartRate: 75, duration: 25 },
+    { time: "14:00", date: "22/01/2025", score: 79, intervention: null, subject: "Khoa học", activity: "Nghiên cứu", heartRate: 78, duration: 35 },
+    { time: "15:00", date: "23/01/2025", score: 85, intervention: null, subject: "Toán học", activity: "Ôn tập", heartRate: 72, duration: 30 },
+    { time: "08:30", date: "23/01/2025", score: 77, intervention: null, subject: "Văn học", activity: "Bài tập", heartRate: 76, duration: 25 },
+    { time: "10:00", date: "23/01/2025", score: 81, intervention: "Tặng thưởng ngôi sao", subject: "Tiếng Anh", activity: "Luyện nói", heartRate: 74, duration: 30 },
+    { time: "13:30", date: "24/01/2025", score: 83, intervention: null, subject: "Toán học", activity: "Kiểm tra", heartRate: 77, duration: 35 },
+    { time: "15:00", date: "24/01/2025", score: 88, intervention: null, subject: "Khoa học", activity: "Dự án", heartRate: 71, duration: 40 },
+    { time: "08:00", date: "25/01/2025", score: 80, intervention: null, subject: "Toán học", activity: "Ôn tập", heartRate: 75, duration: 25 },
+    { time: "09:30", date: "25/01/2025", score: 86, intervention: null, subject: "Văn học", activity: "Sáng tác", heartRate: 73, duration: 35 },
+    { time: "11:00", date: "25/01/2025", score: 84, intervention: null, subject: "Lịch sử", activity: "Thảo luận", heartRate: 76, duration: 30 },
+    { time: "14:00", date: "25/01/2025", score: 90, intervention: null, subject: "Toán học", activity: "Thử thách", heartRate: 70, duration: 40 },
+  ]
 
-  const averageScore =
-    chartData.length > 0 ? Math.round(chartData.reduce((sum, item) => sum + item.score, 0) / chartData.length) : 60
+  const averageScore = Math.round(chartData.reduce((sum, item) => sum + item.score, 0) / chartData.length)
 
   if (!sessions || sessions.length === 0) {
     return (

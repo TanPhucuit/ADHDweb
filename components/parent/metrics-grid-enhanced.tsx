@@ -7,7 +7,7 @@
 import type { Child, DailyReport, FocusSession } from "@/lib/types"
 import { useFocusDashboard, useMedication, useAuth } from "@/hooks/use-api"
 import { Clock, Heart, Activity, Bell } from "lucide-react"
-import { useEffect } from "react"
+import { useState, useEffect } from "react"
 
 interface EnhancedMetricsGridProps {
   child: Child
@@ -21,17 +21,37 @@ export function EnhancedMetricsGrid({ child, todayReport, currentSession }: Enha
   const { data: medicationData, isLoading: medLoading } = useMedication(child.id)
   const { user } = useAuth()
 
-  // Combine props data với API data (API data có priority)
-  const actualReport = focusData?.todayReport || todayReport
-  const actualSession = focusData?.currentSession || currentSession
-  
-  // Calculate metrics từ real data
-  const focusTimeToday = actualReport?.totalFocusTime || 0
-  const averageHeartRate = actualReport?.averageHeartRate || actualSession?.heartRate || 0
-  const fidgetLevel = actualSession?.fidgetLevel || actualReport?.averageFidgetLevel || 0
-  const interventionsToday = actualReport?.interventionsCount || 0
-  const focusGoal = child.settings.focusGoalMinutes
-  const medicationCompliance = medicationData?.todayCompliance || 0
+  const [metrics, setMetrics] = useState({
+    focusTimeToday: 0,
+    averageHeartRate: 0,
+    fidgetLevel: 0,
+  })
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchMetrics = async () => {
+      try {
+        const response = await fetch(`/api/parent/metrics?childId=${child.id}`)
+        if (response.ok) {
+          const data = await response.json()
+          setMetrics(data.metrics)
+        }
+      } catch (error) {
+        console.error('Error fetching metrics:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (child?.id) {
+      fetchMetrics()
+    }
+  }, [child?.id])
+
+  const { focusTimeToday, averageHeartRate, fidgetLevel } = metrics
+  const interventionsToday = 3 // Mock: 3 interventions today
+  const focusGoal = child.settings.focusGoalMinutes || 90
+  const medicationCompliance = 85 // Mock: 85% medication compliance
 
   const getFidgetLevelText = (level: number) => {
     if (level < 30) return "Thấp"

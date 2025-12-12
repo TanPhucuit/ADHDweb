@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import type { Child, DailyReport, FocusSession } from "@/lib/types"
 import { Clock, Heart, Activity, Bell } from "lucide-react"
 import { useInterventionCount } from "@/hooks/use-intervention-count"
@@ -12,10 +13,35 @@ interface MetricsGridProps {
 }
 
 export function MetricsGrid({ child, todayReport, currentSession, parentId }: MetricsGridProps) {
-  const focusTimeToday = todayReport?.totalFocusTime || 0
-  const averageHeartRate = todayReport?.averageHeartRate || 0
-  const fidgetLevel = todayReport?.averageFidgetLevel || 0
-  const focusGoal = child.settings.focusGoalMinutes
+  const [metrics, setMetrics] = useState({
+    focusTimeToday: 0,
+    averageHeartRate: 0,
+    fidgetLevel: 0,
+  })
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchMetrics = async () => {
+      try {
+        const response = await fetch(`/api/parent/metrics?childId=${child.id}`)
+        if (response.ok) {
+          const data = await response.json()
+          setMetrics(data.metrics)
+        }
+      } catch (error) {
+        console.error('Error fetching metrics:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (child?.id) {
+      fetchMetrics()
+    }
+  }, [child?.id])
+
+  const { focusTimeToday, averageHeartRate, fidgetLevel } = metrics
+  const focusGoal = child.settings.focusGoalMinutes || 90
 
   // Use real intervention count from API
   const { todayActions: interventionsToday, isLoading: interventionLoading } = useInterventionCount(parentId)

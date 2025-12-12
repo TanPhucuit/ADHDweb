@@ -1,12 +1,19 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart"
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts"
-import type { DailyReport } from "@/lib/types"
 
 interface TimeDistributionChartProps {
-  reports: DailyReport[]
+  parentId: string
+}
+
+interface ParentAction {
+  id: number
+  parentid: number
+  action_label: string
+  timestamp: string
 }
 
 const chartConfig = {
@@ -24,9 +31,34 @@ const chartConfig = {
   },
 }
 
-export function TimeDistributionChart({ reports }: TimeDistributionChartProps) {
-  const calculateTimeDistribution = () => {
-    if (!reports || reports.length === 0) {
+export function TimeDistributionChart({ parentId }: TimeDistributionChartProps) {
+  const [actions, setActions] = useState<ParentAction[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchActions = async () => {
+      try {
+        setLoading(true)
+        const response = await fetch(`/api/parent/actions/list?parentId=${parentId}`)
+        if (response.ok) {
+          const data = await response.json()
+          setActions(data.actions || [])
+        }
+      } catch (error) {
+        console.error('Error fetching actions:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (parentId) {
+      fetchActions()
+    }
+  }, [parentId])
+
+  // Calculate distribution from actions
+  const calculateDistribution = () => {
+    if (actions.length === 0) {
       return [
         { name: "Tập trung", value: 0, color: "hsl(var(--primary))" },
         { name: "Mất tập trung", value: 0, color: "hsl(var(--destructive))" },
@@ -34,45 +66,43 @@ export function TimeDistributionChart({ reports }: TimeDistributionChartProps) {
       ]
     }
 
-    // Calculate time distribution from focus time and scores
-    const totalFocusTime = reports.reduce((sum, report) => sum + (report.totalFocusTime || 0), 0)
-    const avgFocusScore = reports.reduce((sum, report) => sum + (report.averageFocusScore || 0), 0) / reports.length
-    
-    // Estimate focused vs distracted time based on focus score
-    const focusedMinutes = Math.round(totalFocusTime * (avgFocusScore / 100))
-    const distractedMinutes = Math.round(totalFocusTime * ((100 - avgFocusScore) / 100))
-    const breakMinutes = Math.round(totalFocusTime * 0.2) // Assume 20% break time
-    
-    const totalMinutes = focusedMinutes + distractedMinutes + breakMinutes
+    let focusedCount = 0
+    let distractedCount = 0
+    let breakCount = 0
 
-    if (totalMinutes === 0) {
-      return [
-        { name: "Tập trung", value: 0, color: "hsl(var(--primary))" },
-        { name: "Mất tập trung", value: 0, color: "hsl(var(--destructive))" },
-        { name: "Nghỉ ngơi", value: 0, color: "hsl(var(--muted-foreground))" },
-      ]
-    }
+    actions.forEach((action) => {
+      if (action.action_label === 'nhac-tap-trung') {
+        distractedCount++
+      } else if (action.action_label === 'nghi-giai-lao') {
+        breakCount++
+      } else {
+        // khen-ngoi, dong-vien -> focused
+        focusedCount++
+      }
+    })
 
+    const total = focusedCount + distractedCount + breakCount
+    
     return [
-      {
-        name: "Tập trung",
-        value: Math.round((focusedMinutes / totalMinutes) * 100),
-        color: "hsl(var(--primary))",
+      { 
+        name: "Tập trung", 
+        value: Math.round((focusedCount / total) * 100), 
+        color: "hsl(var(--primary))" 
       },
-      {
-        name: "Mất tập trung",
-        value: Math.round((distractedMinutes / totalMinutes) * 100),
-        color: "hsl(var(--destructive))",
+      { 
+        name: "Mất tập trung", 
+        value: Math.round((distractedCount / total) * 100), 
+        color: "hsl(var(--destructive))" 
       },
-      {
-        name: "Nghỉ ngơi",
-        value: Math.round((breakMinutes / totalMinutes) * 100),
-        color: "hsl(var(--muted-foreground))",
+      { 
+        name: "Nghỉ ngơi", 
+        value: Math.round((breakCount / total) * 100), 
+        color: "hsl(var(--muted-foreground))" 
       },
     ]
   }
 
-  const chartData = calculateTimeDistribution()
+  const chartData = calculateDistribution()
 
   return (
     <Card>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
+import { getVietnamTime } from '@/lib/vietnam-time'
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,11 +9,11 @@ export async function POST(request: NextRequest) {
     
     console.log('📥 Received action request:', { body, parentId, actionLabel, actionName, timestamp })
     
-    if (!parentId || !actionLabel || !timestamp) {
-      console.error('❌ Missing required fields:', { parentId, actionLabel, timestamp })
+    if (!parentId || !actionLabel) {
+      console.error('❌ Missing required fields:', { parentId, actionLabel })
       return NextResponse.json({ 
         error: 'Missing required fields',
-        received: { parentId: !!parentId, actionLabel: !!actionLabel, timestamp: !!timestamp }
+        received: { parentId: !!parentId, actionLabel: !!actionLabel }
       }, { status: 400 })
     }
 
@@ -21,19 +22,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid parentId' }, { status: 400 })
     }
 
-    const ts = new Date(timestamp)
-    if (isNaN(ts.getTime())) {
-      return NextResponse.json({ error: 'Invalid timestamp' }, { status: 400 })
-    }
-
-    // Use current Vietnam time directly since server is already in Asia/Saigon timezone
-    const vietnamTime = new Date() // Server is already in GMT+7
+    // Always use current Vietnam time (GMT+7)
+    const vietnamTimeISO = getVietnamTime()
 
     console.log('🎯 Recording parent action:', { 
       parentId: pid, 
       actionLabel, 
-      currentVietnamTime: vietnamTime.toLocaleString('vi-VN'),
-      timestampToSave: vietnamTime.toISOString()
+      vietnamTime: vietnamTimeISO
     })
 
     const supabase = createServerSupabaseClient()
@@ -64,7 +59,7 @@ export async function POST(request: NextRequest) {
         .insert({
           parentid: pid,
           action_label: label,
-          timestamp: vietnamTime.toISOString(),
+          timestamp: vietnamTimeISO,
         })
         .select()
         .single()

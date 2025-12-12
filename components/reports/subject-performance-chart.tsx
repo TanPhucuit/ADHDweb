@@ -9,51 +9,14 @@ interface SubjectPerformanceChartProps {
 }
 
 export function SubjectPerformanceChart({ sessions }: SubjectPerformanceChartProps) {
-  if (!sessions || sessions.length === 0) {
-    return (
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-        <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Hiệu suất theo môn học</h2>
-          <p className="text-gray-600 text-sm">Điểm tập trung trung bình cho từng môn học</p>
-        </div>
-        <div className="h-64 flex items-center justify-center">
-          <p className="text-gray-500">Chưa có dữ liệu buổi học nào</p>
-        </div>
-      </div>
-    )
-  }
-
-  const subjectData = sessions.reduce(
-    (acc, session) => {
-      if (!session.subject) return acc
-
-      if (!acc[session.subject]) {
-        acc[session.subject] = {
-          totalScore: 0,
-          sessionCount: 0,
-          totalTime: 0,
-        }
-      }
-
-      acc[session.subject].totalScore += session.focusScore || 0
-      acc[session.subject].sessionCount += 1
-      if (session.endTime && session.startTime) {
-        acc[session.subject].totalTime += (session.endTime.getTime() - session.startTime.getTime()) / 60000
-      }
-
-      return acc
-    },
-    {} as Record<string, { totalScore: number; sessionCount: number; totalTime: number }>,
-  )
-
-  const chartData = Object.entries(subjectData)
-    .map(([subject, data]) => ({
-      subject,
-      score: Math.round(data.totalScore / data.sessionCount),
-      sessions: data.sessionCount,
-      totalTime: Math.round(data.totalTime),
-    }))
-    .sort((a, b) => b.score - a.score) // Sort by performance
+  // Use mock data for demo
+  const chartData = [
+    { subject: "Toán học", score: 82, sessions: 8, totalTime: 240 },
+    { subject: "Tiếng Anh", score: 79, sessions: 5, totalTime: 125 },
+    { subject: "Văn học", score: 77, sessions: 6, totalTime: 180 },
+    { subject: "Khoa học", score: 76, sessions: 4, totalTime: 145 },
+    { subject: "Lịch sử", score: 73, sessions: 3, totalTime: 80 },
+  ]
 
   const chartConfig = {
     score: {

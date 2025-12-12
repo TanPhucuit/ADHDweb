@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
+import { getVietnamTime } from '@/lib/vietnam-time'
 
 // GET - Get all schedule activities from Supabase database ONLY
 export async function GET(request: NextRequest) {
@@ -78,9 +79,9 @@ export async function GET(request: NextRequest) {
           startTime: new Date(item.start_time_stamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
           endTime: new Date(item.end_time_stamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
           status: item.status,
-          completedAt: item.status === 'completed' ? new Date().toISOString() : null,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          completedAt: item.status === 'completed' ? getVietnamTime() : null,
+          createdAt: getVietnamTime(),
+          updatedAt: getVietnamTime()
         }
       }) || []
 
@@ -110,9 +111,9 @@ export async function GET(request: NextRequest) {
         startTime: new Date(item.start_time_stamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
         endTime: new Date(item.end_time_stamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
         status: item.status,
-        completedAt: item.status === 'completed' ? new Date().toISOString() : null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        completedAt: item.status === 'completed' ? getVietnamTime() : null,
+        createdAt: getVietnamTime(),
+        updatedAt: getVietnamTime()
       })) || []
 
       return NextResponse.json({ data: activities })
@@ -163,9 +164,9 @@ export async function POST(request: NextRequest) {
         startTime: new Date(data.start_time_stamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
         endTime: new Date(data.end_time_stamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
         status: data.status,
-        completedAt: data.status === 'completed' ? new Date().toISOString() : null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        completedAt: data.status === 'completed' ? getVietnamTime() : null,
+        createdAt: getVietnamTime(),
+        updatedAt: getVietnamTime()
       }
 
       return NextResponse.json({ data: activity })

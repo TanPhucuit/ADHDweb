@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { getVietnamTime } from './vietnam-time'
 
 export interface InstantNotification {
   id: string
@@ -112,7 +113,7 @@ class InstantNotificationService {
         .insert({
           childid: parseInt(childId),
           actiontype: actionType,
-          timestamp: new Date().toISOString()
+          timestamp: getVietnamTime()
         })
         .select()
         .single()

@@ -194,9 +194,9 @@ export default function ReportsPage() {
           <LearningPerformanceChart childId={child.id.toString()} />
         </div>
 
-        <TimeDistributionChart reports={reports} />
+        <TimeDistributionChart parentId={user!.id.toString()} />
 
-        <HistoricalDataTable sessions={sessions} reports={reports} childId={child.id.toString()} />
+        <HistoricalDataTable parentId={user!.id.toString()} />
       </main>
     </div>
   )

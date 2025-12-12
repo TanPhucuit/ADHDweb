@@ -16,13 +16,20 @@ export function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [role, setRole] = useState<"parent" | "child">("parent")
   const [formData, setFormData] = useState({
-    parentName: "",
-    childName: "",
+    name: "",
     email: "",
     password: "",
     confirmPassword: "",
     agreeToTerms: false,
+    // Child-specific fields
+    parentName: "",
+    parentEmail: "",
+    age: "",
+    gender: "",
+    device1Uid: "",
+    device2Uid: "",
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -64,44 +71,137 @@ export function RegisterForm() {
       </CardHeader>
 
       <CardContent className="space-y-6">
+        {/* Role Selector */}
+        <div className="flex gap-2 p-1 bg-muted rounded-lg">
+          <button
+            type="button"
+            onClick={() => setRole("parent")}
+            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
+              role === "parent"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Phụ huynh
+          </button>
+          <button
+            type="button"
+            onClick={() => setRole("child")}
+            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
+              role === "child"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Con cái
+          </button>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="parentName" className="text-sm font-medium">
-                Tên phụ huynh
-              </Label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+          <div className="space-y-2">
+            <Label htmlFor="name" className="text-sm font-medium">
+              {role === "parent" ? "Tên phụ huynh" : "Tên của bạn"}
+            </Label>
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Input
+                id="name"
+                type="text"
+                placeholder="Nguyễn Văn A"
+                value={formData.name}
+                onChange={(e) => updateFormData("name", e.target.value)}
+                className="pl-10 h-12 bg-background border-border focus:border-primary transition-colors"
+                required
+              />
+            </div>
+          </div>
+
+          {role === "child" && (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="age" className="text-sm font-medium">
+                    Độ tuổi
+                  </Label>
+                  <Input
+                    id="age"
+                    type="number"
+                    placeholder="12"
+                    value={formData.age}
+                    onChange={(e) => updateFormData("age", e.target.value)}
+                    className="h-12 bg-background border-border focus:border-primary transition-colors"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="gender" className="text-sm font-medium">
+                    Giới tính
+                  </Label>
+                  <select
+                    id="gender"
+                    value={formData.gender}
+                    onChange={(e) => updateFormData("gender", e.target.value)}
+                    className="w-full h-12 px-3 bg-background border border-border rounded-md focus:border-primary transition-colors"
+                  >
+                    <option value="">Chọn...</option>
+                    <option value="male">Nam</option>
+                    <option value="female">Nữ</option>
+                    <option value="other">Khác</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="parentName" className="text-sm font-medium">
+                  Tên phụ huynh quản lý
+                </Label>
                 <Input
                   id="parentName"
                   type="text"
                   placeholder="Nguyễn Văn A"
                   value={formData.parentName}
                   onChange={(e) => updateFormData("parentName", e.target.value)}
-                  className="pl-10 h-12 bg-background border-border focus:border-primary transition-colors"
-                  required
+                  className="h-12 bg-background border-border focus:border-primary transition-colors"
+                  required={role === "child"}
                 />
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="childName" className="text-sm font-medium">
-                Tên con
-              </Label>
-              <div className="relative">
-                <Heart className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <div className="space-y-2">
+                <Label htmlFor="parentEmail" className="text-sm font-medium">
+                  Email phụ huynh
+                </Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                  <Input
+                    id="parentEmail"
+                    type="email"
+                    placeholder="parent@email.com"
+                    value={formData.parentEmail}
+                    onChange={(e) => updateFormData("parentEmail", e.target.value)}
+                    className="pl-10 h-12 bg-background border-border focus:border-primary transition-colors"
+                    required={role === "child"}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">UID thiết bị (tùy chọn)</Label>
                 <Input
-                  id="childName"
-                  type="text"
-                  placeholder="Minh An"
-                  value={formData.childName}
-                  onChange={(e) => updateFormData("childName", e.target.value)}
-                  className="pl-10 h-12 bg-background border-border focus:border-primary transition-colors"
-                  required
+                  id="device1Uid"
+                  placeholder="Thiết bị 1"
+                  value={formData.device1Uid}
+                  onChange={(e) => updateFormData("device1Uid", e.target.value)}
+                  className="h-12 bg-background border-border focus:border-primary transition-colors"
+                />
+                <Input
+                  id="device2Uid"
+                  placeholder="Thiết bị 2"
+                  value={formData.device2Uid}
+                  onChange={(e) => updateFormData("device2Uid", e.target.value)}
+                  className="h-12 bg-background border-border focus:border-primary transition-colors"
                 />
               </div>
-            </div>
-          </div>
+            </>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="email" className="text-sm font-medium">

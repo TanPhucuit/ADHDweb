@@ -10,25 +10,21 @@ interface FocusTrendChartProps {
 }
 
 export function FocusTrendChart({ sessions, child }: FocusTrendChartProps) {
-  // Safe data processing
-  const safeSessions = sessions || []
-  
-  // Create simple chart data with fallback values
-  const chartData = safeSessions
-    .filter((session) => session?.endTime && session?.startTime) // Only completed sessions with valid times
-    .slice(0, 12) // Last 12 sessions
-    .reverse()
-    .map((session, index) => ({
-      session: `Phiên ${index + 1}`,
-      time: session.startTime ? session.startTime.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) : "",
-      focusScore: session.focusScore || 0,
-      heartRate: 75, // Default value since field doesn't exist in type
-      fidgetLevel: 25, // Default value since field doesn't exist in type
-      subject: "Toán học", // Default value since field doesn't exist in type
-      activity: "Bài tập", // Default value since field doesn't exist in type
-      duration: session.endTime && session.startTime ? 
-        Math.round((session.endTime.getTime() - session.startTime.getTime()) / 60000) : 0,
-    }))
+  // Use mock data for demo purposes
+  const chartData = [
+    { session: "Phiên 1", time: "08:00", focusScore: 65, heartRate: 78, fidgetLevel: 30, subject: "Toán học", activity: "Bài tập", duration: 25 },
+    { session: "Phiên 2", time: "09:00", focusScore: 72, heartRate: 75, fidgetLevel: 25, subject: "Văn học", activity: "Đọc sách", duration: 30 },
+    { session: "Phiên 3", time: "10:30", focusScore: 68, heartRate: 80, fidgetLevel: 35, subject: "Toán học", activity: "Luyện tập", duration: 20 },
+    { session: "Phiên 4", time: "13:00", focusScore: 75, heartRate: 76, fidgetLevel: 22, subject: "Tiếng Anh", activity: "Học từ vựng", duration: 25 },
+    { session: "Phiên 5", time: "14:00", focusScore: 70, heartRate: 82, fidgetLevel: 28, subject: "Khoa học", activity: "Thí nghiệm", duration: 35 },
+    { session: "Phiên 6", time: "15:30", focusScore: 78, heartRate: 74, fidgetLevel: 20, subject: "Toán học", activity: "Bài tập nâng cao", duration: 30 },
+    { session: "Phiên 7", time: "16:00", focusScore: 73, heartRate: 79, fidgetLevel: 26, subject: "Lịch sử", activity: "Đọc hiểu", duration: 25 },
+    { session: "Phiên 8", time: "08:00", focusScore: 80, heartRate: 73, fidgetLevel: 18, subject: "Toán học", activity: "Giải toán", duration: 40 },
+    { session: "Phiên 9", time: "09:30", focusScore: 76, heartRate: 77, fidgetLevel: 23, subject: "Văn học", activity: "Viết bài", duration: 30 },
+    { session: "Phiên 10", time: "11:00", focusScore: 82, heartRate: 75, fidgetLevel: 19, subject: "Tiếng Anh", activity: "Nghe hiểu", duration: 25 },
+    { session: "Phiên 11", time: "14:00", focusScore: 79, heartRate: 78, fidgetLevel: 21, subject: "Khoa học", activity: "Nghiên cứu", duration: 35 },
+    { session: "Phiên 12", time: "15:00", focusScore: 85, heartRate: 72, fidgetLevel: 15, subject: "Toán học", activity: "Ôn tập", duration: 30 },
+  ]
 
   const averageScore = chartData.length > 0 ? 
     Math.round(chartData.reduce((sum, item) => sum + (item.focusScore || 0), 0) / chartData.length) : 0

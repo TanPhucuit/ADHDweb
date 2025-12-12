@@ -1,0 +1,122 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createServerSupabaseClient } from '@/lib/supabase'
+
+// GET - Fetch all devices for parent's children
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const parentId = searchParams.get('parentId')
+    
+    if (!parentId) {
+      return NextResponse.json({ error: 'Parent ID is required' }, { status: 400 })
+    }
+
+    const supabase = createServerSupabaseClient()
+
+    // Get all children for this parent
+    const { data: children, error: childrenError } = await supabase
+      .from('child')
+      .select('id, name')
+      .eq('parentid', parseInt(parentId))
+
+    if (childrenError) {
+      console.error('Error fetching children:', childrenError)
+      return NextResponse.json({ 
+        error: 'Error fetching children',
+        details: childrenError.message 
+      }, { status: 500 })
+    }
+
+    if (!children || children.length === 0) {
+      return NextResponse.json({ 
+        success: true,
+        devices: []
+      })
+    }
+
+    // Get all devices for these children
+    const childIds = children.map(c => c.id)
+    const { data: devices, error: devicesError } = await supabase
+      .from('devices')
+      .select('*')
+      .in('child_id', childIds)
+      .order('created_at', { ascending: true })
+
+    if (devicesError) {
+      console.error('Error fetching devices:', devicesError)
+      return NextResponse.json({ 
+        error: 'Error fetching devices',
+        details: devicesError.message 
+      }, { status: 500 })
+    }
+
+    // Combine devices with child names
+    const devicesWithChildNames = (devices || []).map(device => {
+      const child = children.find(c => c.id === device.child_id)
+      return {
+        ...device,
+        childName: child?.name || 'Unknown'
+      }
+    })
+
+    return NextResponse.json({ 
+      success: true,
+      devices: devicesWithChildNames
+    })
+
+  } catch (error) {
+    console.error('Error in GET parent devices API:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    
+    return NextResponse.json({ 
+      error: 'Internal server error', 
+      details: errorMessage
+    }, { status: 500 })
+  }
+}
+
+// PUT - Update device (for parent to edit child's device)
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { deviceId, device_uid, device_name } = body
+    
+    if (!deviceId) {
+      return NextResponse.json({ error: 'Device ID is required' }, { status: 400 })
+    }
+
+    const supabase = createServerSupabaseClient()
+
+    const { data: device, error } = await supabase
+      .from('devices')
+      .update({
+        device_uid,
+        device_name,
+      })
+      .eq('id', deviceId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error updating device:', error)
+      return NextResponse.json({ 
+        error: 'Error updating device',
+        details: error.message 
+      }, { status: 500 })
+    }
+
+    return NextResponse.json({ 
+      success: true,
+      device
+    })
+
+  } catch (error) {
+    console.error('Error in PUT parent devices API:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    
+    return NextResponse.json({ 
+      error: 'Internal server error', 
+      details: errorMessage
+    }, { status: 500 })
+  }
+}

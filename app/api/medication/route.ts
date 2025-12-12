@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
+import { getVietnamTime } from '@/lib/vietnam-time'
 
 // No mock data - only use Supabase database
 
@@ -53,10 +54,10 @@ export async function GET(request: NextRequest) {
         dosage: item.frequency || '1 viên', // Use frequency field as dosage info
         scheduledTime: scheduledTime.toISOString(),
         status: item.status,
-        takenTime: item.status === 'taken' ? new Date().toISOString() : null,
+        takenTime: item.status === 'taken' ? getVietnamTime() : null,
         notes: item.note,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        createdAt: getVietnamTime(),
+        updatedAt: getVietnamTime()
       }
     }) || []
 
@@ -116,10 +117,10 @@ export async function POST(request: NextRequest) {
         dosage: data.frequency || '1 viên',
         scheduledTime: scheduledTime.toISOString(),
         status: data.status,
-        takenTime: data.status === 'taken' ? new Date().toISOString() : null,
+        takenTime: data.status === 'taken' ? getVietnamTime() : null,
         notes: data.note,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        createdAt: getVietnamTime(),
+        updatedAt: getVietnamTime()
       }
 
       return NextResponse.json({ data: medication })
