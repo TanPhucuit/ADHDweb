@@ -31,6 +31,16 @@ export async function GET(request: NextRequest) {
     // 1. Get average heart rate (BMP) from result table
     console.log('📊 Fetching metrics for child:', childId)
     
+    // First check if ANY data exists for this child
+    const allData = await supabase
+      .from('result')
+      .select('*')
+      .eq('childid', parseInt(childId))
+      .limit(5)
+      .then(res => res.data)
+    
+    console.log('🔍 ALL data for child', childId, ':', JSON.stringify(allData, null, 2))
+    
     // Query result table directly by childid
     let heartRateData = await supabase
       .from('result')
