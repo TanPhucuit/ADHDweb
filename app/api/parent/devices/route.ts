@@ -44,11 +44,22 @@ export async function GET(request: NextRequest) {
     const childIds = children.map(c => c.childid)
     console.log('🔍 Looking for devices with child_ids:', childIds)
     
-    // Try without order first to see if that's the issue
-    const { data: devices, error: devicesError } = await supabase
+    // Try child_id column first
+    let { data: devices, error: devicesError } = await supabase
       .from('devices')
       .select('*')
       .in('child_id', childIds)
+    
+    // If error or no results, try childid column
+    if (devicesError || !devices || devices.length === 0) {
+      console.log('🔄 Trying childid column instead')
+      const result = await supabase
+        .from('devices')
+        .select('*')
+        .in('childid', childIds)
+      devices = result.data
+      devicesError = result.error
+    }
 
     if (devicesError) {
       console.error('❌ Error fetching devices:', devicesError)
@@ -62,7 +73,9 @@ export async function GET(request: NextRequest) {
 
     // Combine devices with child names and ensure device_type is set
     const devicesWithChildNames = (devices || []).map(device => {
-      const child = children.find(c => c.childid === device.child_id)
+      // Try both child_id and childid columns
+      const childId = device.child_id || device.childid
+      const child = children.find(c => c.childid === childId)
       // Default to smartwatch if device_type is missing
       const deviceType = device.device_type || (
         device.device_name?.toLowerCase().includes('camera') ? 'smartcamera' : 'smartwatch'

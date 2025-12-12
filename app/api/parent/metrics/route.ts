@@ -28,35 +28,18 @@ export async function GET(request: NextRequest) {
       vietnamTime: vietnamTime.toISOString()
     })
 
-    // 1. Get average heart rate (BPM) from result table
-    console.log('📊 Fetching heart rate for child:', childId)
+    // 1. Get average heart rate (BMP) from result table
+    console.log('📊 Fetching metrics for child:', childId)
     
-    // IMPORTANT: Query by device_id, not child_id
-    // Get devices for this child first
-    const { data: devices, error: devicesError } = await supabase
-      .from('devices')
-      .select('id, child_id, device_name, device_uid')
-      .eq('child_id', parseInt(childId))
-    
-    if (devicesError) {
-      console.error('❌ Error fetching devices:', devicesError)
-    }
-    
-    console.log('📱 Raw devices data:', devices)
-    const deviceIds = devices?.map(d => d.id) || []
-    console.log('📱 Extracted device IDs for child', childId, ':', deviceIds)
-    
-    let heartRateData = null
-    if (deviceIds.length > 0) {
-      heartRateData = await supabase
-        .from('result')
-        .select('bmp, created_at')
-        .in('device_id', deviceIds)
-        .not('bmp', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(10)
-        .then(res => res.data)
-    }
+    // Query result table directly by childid
+    let heartRateData = await supabase
+      .from('result')
+      .select('bmp, created_at')
+      .eq('childid', parseInt(childId))
+      .not('bmp', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(10)
+      .then(res => res.data)
 
     let averageHeartRate = 0
     if (heartRateData && heartRateData.length > 0) {
@@ -70,23 +53,18 @@ export async function GET(request: NextRequest) {
         values: heartRateData.map(d => d.bmp)
       })
     } else {
-      console.log('⚠️ No heart rate data found for child:', childId, 'devices:', deviceIds)
+      console.log('⚠️ No heart rate data found for child:', childId)
     }
 
     // 2. Get average restlessness rate from result table
-    console.log('📊 Fetching restlessness for child:', childId)
-    
-    let restlessnessData = null
-    if (deviceIds.length > 0) {
-      restlessnessData = await supabase
-        .from('result')
-        .select('restlessness_rate, created_at')
-        .in('device_id', deviceIds)
-        .not('restlessness_rate', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(10)
-        .then(res => res.data)
-    }
+    let restlessnessData = await supabase
+      .from('result')
+      .select('restlessness_rate, created_at')
+      .eq('childid', parseInt(childId))
+      .not('restlessness_rate', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(10)
+      .then(res => res.data)
 
     let fidgetLevel = 0
     if (restlessnessData && restlessnessData.length > 0) {
@@ -103,23 +81,18 @@ export async function GET(request: NextRequest) {
         values: restlessnessData.map(d => d.restlessness_rate)
       })
     } else {
-      console.log('⚠️ No restlessness data found for child:', childId, 'devices:', deviceIds)
+      console.log('⚠️ No restlessness data found for child:', childId)
     }
 
     // 3. Get total focus time from result table (focus_time column)
-    console.log('📊 Fetching focus time for child:', childId)
-    
-    let focusTimeData = null
-    if (deviceIds.length > 0) {
-      focusTimeData = await supabase
-        .from('result')
-        .select('focus_time, created_at')
-        .in('device_id', deviceIds)
-        .not('focus_time', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(10)
-        .then(res => res.data)
-    }
+    let focusTimeData = await supabase
+      .from('result')
+      .select('focus_time, created_at')
+      .eq('childid', parseInt(childId))
+      .not('focus_time', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(10)
+      .then(res => res.data)
 
     let focusTimeToday = 0
     if (focusTimeData && focusTimeData.length > 0) {
@@ -132,7 +105,7 @@ export async function GET(request: NextRequest) {
         allValues: focusTimeData.map(d => d.focus_time)
       })
     } else {
-      console.log('⚠️ No focus time data found for child:', childId, 'devices:', deviceIds)
+      console.log('⚠️ No focus time data found for child:', childId)
     }
 
     console.log('✅ Metrics fetched from database:', { 
@@ -151,8 +124,6 @@ export async function GET(request: NextRequest) {
       },
       debug: {
         childId,
-        deviceIds,
-        devicesFound: devices?.length || 0,
         heartRateRecords: heartRateData?.length || 0,
         restlessnessRecords: restlessnessData?.length || 0,
         focusTimeRecords: focusTimeData?.length || 0,
