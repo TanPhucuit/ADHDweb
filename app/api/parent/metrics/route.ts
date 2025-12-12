@@ -50,9 +50,9 @@ export async function GET(request: NextRequest) {
     if (deviceIds.length > 0) {
       heartRateData = await supabase
         .from('result')
-        .select('bpm, created_at')
+        .select('bmp, created_at')
         .in('device_id', deviceIds)
-        .not('bpm', 'is', null)
+        .not('bmp', 'is', null)
         .order('created_at', { ascending: false })
         .limit(10)
         .then(res => res.data)
@@ -61,13 +61,13 @@ export async function GET(request: NextRequest) {
     let averageHeartRate = 0
     if (heartRateData && heartRateData.length > 0) {
       console.log('📋 RAW heart rate data:', JSON.stringify(heartRateData, null, 2))
-      const totalBpm = heartRateData.reduce((sum, item) => sum + (item.bpm || 0), 0)
+      const totalBpm = heartRateData.reduce((sum, item) => sum + (item.bmp || 0), 0)
       averageHeartRate = Math.round(totalBpm / heartRateData.length)
       console.log('💓 Heart rate calculation:', {
         dataPoints: heartRateData.length,
         totalBpm,
         average: averageHeartRate,
-        values: heartRateData.map(d => d.bpm)
+        values: heartRateData.map(d => d.bmp)
       })
     } else {
       console.log('⚠️ No heart rate data found for child:', childId, 'devices:', deviceIds)
