@@ -29,18 +29,13 @@ export async function GET(request: NextRequest) {
       }, { status: 404 })
     }
 
-    // Lấy các actions của parent này trong ngày hôm nay
-    const today = new Date()
-    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
-
+    // Lấy TẤT CẢ các actions của parent này (không giới hạn ngày)
     const { data: actions, error: actionsError } = await supabase
       .from('action')
       .select('*')
       .eq('parentid', child.parentid)
-      .gte('timestamp', startOfDay.toISOString())
-      .lt('timestamp', endOfDay.toISOString())
       .order('timestamp', { ascending: false })
+      .limit(100) // Giới hạn 100 actions gần nhất
 
     if (actionsError) {
       console.error('❌ Error fetching actions:', actionsError)

@@ -178,8 +178,16 @@ export function CompletionNotificationsPanel({
               <div key={notification.id} className="p-4 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg hover:shadow-md transition-shadow">
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0">
-                    <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
-                      <Trophy className="h-5 w-5 text-yellow-600" />
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                      notification.type === 'medication_taken' 
+                        ? 'bg-purple-100' 
+                        : 'bg-yellow-100'
+                    }`}>
+                      {notification.type === 'medication_taken' ? (
+                        <span className="text-lg">💊</span>
+                      ) : (
+                        <Trophy className="h-5 w-5 text-yellow-600" />
+                      )}
                     </div>
                   </div>
                   
@@ -194,10 +202,25 @@ export function CompletionNotificationsPanel({
                     </div>
                     
                     <p className="text-gray-700 text-sm mb-2">
-                      <span className="font-medium">{notification.childName}</span> đã hoàn thành bài tập môn{' '}
-                      <span className="font-medium text-blue-600">
-                        {getSubjectIcon(notification.subject)} {notification.subject}
-                      </span>
+                      {notification.type === 'medication_taken' ? (
+                        <>
+                          <span className="font-medium">{notification.childName}</span> đã uống thuốc{' '}
+                          <span className="font-medium text-purple-600">
+                            💊 {notification.metadata?.medicineName || 'thuốc'}
+                          </span>{' '}
+                          vào lúc{' '}
+                          <span className="font-medium text-gray-600">
+                            {notification.completedAt}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="font-medium">{notification.childName}</span> đã hoàn thành bài tập môn{' '}
+                          <span className="font-medium text-blue-600">
+                            {getSubjectIcon(notification.subject)} {notification.subject}
+                          </span>
+                        </>
+                      )}
                     </p>
                     
                     <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500">

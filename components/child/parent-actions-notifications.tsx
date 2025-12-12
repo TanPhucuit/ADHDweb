@@ -66,7 +66,7 @@ export function ParentActionsNotifications({ childId, isOpen, onClose }: ParentA
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full max-h-[80vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
@@ -93,7 +93,7 @@ export function ParentActionsNotifications({ childId, isOpen, onClose }: ParentA
           ) : notifications.length === 0 ? (
             <div className="text-center py-8">
               <Bell className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-              <p className="text-gray-500">Chưa có thông báo nào hôm nay</p>
+              <p className="text-gray-500">Chưa có thông báo nào từ ba mẹ</p>
             </div>
           ) : (
             <div className="space-y-3">

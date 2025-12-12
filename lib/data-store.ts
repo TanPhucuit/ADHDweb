@@ -1580,13 +1580,14 @@ class DataStore {
     if (!child) return
 
     // Extract medicine name from notes if available
-    const medicineName = medicineLog.notes?.split(' ')[0] || "thuốc"
+    const medicineName = medicineLog.notes || `#${medicineLog.id}`
+    const timestamp = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
     
     this.createNotificationForParent(
       childId,
       "medicine_taken",
       "💊 Đã uống thuốc",
-      `${child.name} đã uống ${medicineName} lúc ${new Date().toLocaleTimeString('vi-VN')}`,
+      `${child.name} đã uống thuốc ${medicineName} vào lúc ${timestamp}`,
       medicineLog.id
     )
   }

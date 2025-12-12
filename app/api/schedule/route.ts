@@ -58,21 +58,33 @@ export async function GET(request: NextRequest) {
 
       console.log('✅ Found', data?.length || 0, 'schedule activities in database')
 
-      // Convert database format to API format
-      const activities = data?.map(item => ({
-        id: item.schedule_activityid,
-        childId: childId, // Use original childId parameter
-        subject: item.subject,
-        title: item.subject, // Use subject as title since title doesn't exist
-        description: '', // Description doesn't exist in schema
-        startTime: new Date(item.start_time_stamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-        endTime: new Date(item.end_time_stamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-        status: item.status,
-        completedAt: item.status === 'completed' ? new Date().toISOString() : null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      })) || []
+      // QUAN TRỌNG: Convert database format to API format
+      // CHỈ sử dụng dữ liệu THỰC từ database, KHÔNG có mock data
+      const activities = data?.map(item => {
+        console.log('📋 Processing activity from DB:', {
+          id: item.schedule_activityid,
+          subject: item.subject,
+          status: item.status,
+          startTime: item.start_time_stamp,
+          endTime: item.end_time_stamp
+        })
+        
+        return {
+          id: item.schedule_activityid,
+          childId: childId, // Use original childId parameter
+          subject: item.subject,
+          title: item.subject, // Use subject as title since title doesn't exist
+          description: '', // Description doesn't exist in schema
+          startTime: new Date(item.start_time_stamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+          endTime: new Date(item.end_time_stamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+          status: item.status,
+          completedAt: item.status === 'completed' ? new Date().toISOString() : null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+      }) || []
 
+      console.log('✅ Returning', activities.length, 'activities - ALL FROM DATABASE, NO MOCK DATA')
       return NextResponse.json({ data: activities })
     } else {
       // Get all activities

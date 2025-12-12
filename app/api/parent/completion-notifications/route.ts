@@ -183,7 +183,63 @@ export async function GET(request: NextRequest) {
       }
     }) || []
 
-    console.log(`📢 Generated ${notifications.length} completion notifications`)
+    // Step 4: Get all completed medications (medicine_notification with status = 'taken')
+    console.log('🔍 Looking for completed medications for child IDs:', childIds)
+    
+    const { data: medications, error: medicationsError } = await supabase
+      .from('medicine_notification')
+      .select('*')
+      .in('childid', childIds)
+      .eq('status', 'taken')
+    
+    if (medicationsError) {
+      console.log('❌ Error fetching medications:', medicationsError)
+    } else {
+      console.log(`✅ Found ${medications?.length || 0} taken medications`)
+      
+      // Transform medications to notification format
+      const medicationNotifications = medications?.map((med: any) => {
+        const child = children!.find((c: any) => c.childid === med.childid)
+        const childName = child?.full_name || 'Học sinh'
+        const medicineName = med.notes || med.name || `Thuốc #${med.medicine_notificationid}`
+        const takenTime = med.takentime 
+          ? new Date(med.takentime).toLocaleString('vi-VN')
+          : 'Không xác định'
+        
+        return {
+          id: `medication-${med.medicine_notificationid}`,
+          type: 'medication_taken',
+          title: '💊 Đã uống thuốc',
+          message: `${childName} đã uống thuốc ${medicineName}`,
+          childName: childName,
+          childId: med.childid,
+          subject: 'Uống thuốc',
+          activityId: med.medicine_notificationid,
+          completedAt: takenTime,
+          startTime: null,
+          endTime: null,
+          metadata: {
+            activityTitle: `Uống thuốc ${medicineName}`,
+            subject: 'Uống thuốc',
+            completedAt: med.takentime,
+            childName: childName,
+            medicineName: medicineName
+          },
+          created_at: med.takentime || new Date().toISOString(),
+          is_read: false
+        }
+      }) || []
+      
+      // Merge activities and medications, sort by time
+      notifications.push(...medicationNotifications)
+      notifications.sort((a, b) => {
+        const timeA = new Date(a.created_at).getTime()
+        const timeB = new Date(b.created_at).getTime()
+        return timeB - timeA // Newest first
+      })
+    }
+
+    console.log(`📢 Generated ${notifications.length} total completion notifications (activities + medications)`)
 
     return NextResponse.json({ 
       success: true, 
@@ -193,7 +249,8 @@ export async function GET(request: NextRequest) {
       childrenCount: children.length,
       debug: {
         childIds,
-        activitiesFound: completedActivities.length
+        activitiesFound: completedActivities.length,
+        medicationsFound: medications?.length || 0
       }
     })
 

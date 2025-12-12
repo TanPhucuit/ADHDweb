@@ -98,17 +98,26 @@ export default function ChildDashboard() {
           .catch(() => ({ totalStars: 0, breakdown: {} }))
       ])
       
-      console.log('🏆 API Data loaded:', { activities, medications, rewards })
+      console.log('🏆 API Data loaded:', { 
+        activitiesCount: activities?.length || 0,
+        activities: activities,
+        medications, 
+        rewards 
+      })
       
-      // Convert and set data
-      setScheduleActivities(activities.map((activity: any) => ({
+      // QUAN TRỌNG: Chỉ sử dụng dữ liệu THỰC từ API, KHÔNG có mock data
+      // Convert and set data - chỉ hiển thị những môn có trong schedule_activity từ database
+      const realActivities = activities.map((activity: any) => ({
         ...activity,
         date: new Date().toISOString().split('T')[0],
         priority: 'medium' as const,
         completedAt: activity.completedAt ? new Date(activity.completedAt) : undefined,
         createdAt: new Date(activity.createdAt || Date.now()),
         updatedAt: new Date(activity.updatedAt || Date.now())
-      })))
+      }))
+      
+      console.log('📚 Setting schedule activities from database:', realActivities)
+      setScheduleActivities(realActivities)
       
       setMedicineNotifications(medications.map((med: any) => ({
         ...med,
@@ -263,12 +272,11 @@ export default function ChildDashboard() {
           : activity
       ))
       
-      // Cộng điểm thưởng ngay lập tức với animation
-      setRewardPoints(prev => prev + 5)
-      showRewardGain(5)
-      
-      // Gọi API trong background
+      // Gọi API trong background trước
       await apiService.completeScheduleActivity(activityId)
+      
+      // Hiển thị animation cộng điểm (5 sao cho schedule activity)
+      showRewardGain(5)
       
       // Send notification to parent about activity completion
       if (child && activity) {
@@ -286,8 +294,25 @@ export default function ChildDashboard() {
         })
       }
       
-      // Đồng bộ lại reward points từ server với API mới
+      // Đồng bộ lại reward points từ server với API mới (đây là nguồn chính xác duy nhất)
       await reloadRewardPoints()
+      
+      // CRITICAL: Reload lại scheduleActivities từ server để đảm bảo status được cập nhật
+      // Điều này ngăn user click lại vào activity vừa completed
+      if (user?.id) {
+        console.log('🔄 Reloading schedule activities after completion...')
+        const freshActivities = await apiService.getScheduleActivities(user.id)
+        const realActivities = freshActivities.map((activity: any) => ({
+          ...activity,
+          date: new Date().toISOString().split('T')[0],
+          priority: 'medium' as const,
+          completedAt: activity.completedAt ? new Date(activity.completedAt) : undefined,
+          createdAt: new Date(activity.createdAt || Date.now()),
+          updatedAt: new Date(activity.updatedAt || Date.now())
+        }))
+        setScheduleActivities(realActivities)
+        console.log('✅ Schedule activities reloaded:', realActivities.length, 'activities')
+      }
     } catch (error) {
       console.error(' Error completing activity:', error)
       // Rollback optimistic update nếu có lỗi
@@ -296,9 +321,10 @@ export default function ChildDashboard() {
           ? { ...activity, status: 'pending' as const, completedAt: undefined }
           : activity
       ))
-      setRewardPoints(prev => prev - 5)
+      // Reload lại điểm từ server để đảm bảo chính xác
+      await reloadRewardPoints()
     }
-  }, [child, showRewardGain, scheduleActivities, reloadRewardPoints])
+  }, [child, showRewardGain, scheduleActivities, reloadRewardPoints, user])
 
   // Handle medication taken with optimistic updates
   const handleMedicineTakenAPI = useCallback(async (medicationId: string) => {
@@ -312,29 +338,34 @@ export default function ChildDashboard() {
           : med
       ))
       
-      // Cộng điểm thưởng ngay lập tức với animation
-      setRewardPoints(prev => prev + 10)
-      showRewardGain(10)
-      
-      // Gọi API trong background
+      // Gọi API trong background trước
       await apiService.takeMedication(medicationId)
+      
+      // Hiển thị animation cộng điểm (10 sao cho medication)
+      showRewardGain(10)
       
       // Send notification to parent about medication taken
       if (child) {
+        // Tìm tên thuốc từ medicineNotifications
+        const medication = medicineNotifications.find(med => med.id === medicationId)
+        const medicineName = medication?.notes || medication?.reminderId || `#${medicationId}`
+        
         await notificationService.notifyMedicineTaken(
           child.parentId,
           child.id,
           child.name,
-          medicationId
+          medicationId,
+          medicineName
         )
         console.log('📢 Medication notification sent to parent:', {
           child: child.name,
-          medication: medicationId,
+          medication: medicineName,
+          medicationId: medicationId,
           time: new Date().toLocaleTimeString('vi-VN')
         })
       }
       
-      // Đồng bộ lại reward points từ server với API mới
+      // Đồng bộ lại reward points từ server với API mới (đây là nguồn chính xác duy nhất)
       await reloadRewardPoints()
     } catch (error) {
       console.error(' Error taking medication:', error)
@@ -344,9 +375,10 @@ export default function ChildDashboard() {
           ? { ...med, status: 'pending' as const, takenTime: undefined }
           : med
       ))
-      setRewardPoints(prev => prev - 10)
+      // Reload lại điểm từ server để đảm bảo chính xác
+      await reloadRewardPoints()
     }
-  }, [child, showRewardGain, reloadRewardPoints])
+  }, [child, showRewardGain, reloadRewardPoints, medicineNotifications])
 
   // Test notification function
   const handleTestNotification = useCallback(async () => {
@@ -379,7 +411,13 @@ export default function ChildDashboard() {
 
   // Activity and focus session handlers
   const handleScheduleActivityStart = useCallback((activity: ScheduleItem) => {
-    console.log("Starting schedule activity:", activity)
+    // QUAN TRỌNG: Không cho phép start activity đã completed
+    if (activity.status === 'completed') {
+      console.warn('⛔ BLOCKED: Cannot start completed activity:', activity.subject || activity.title)
+      return
+    }
+    
+    console.log("✅ Starting schedule activity:", activity)
     setSelectedActivity(activity)
     setCurrentSession({
       id: `session-${activity.id}`,
@@ -396,9 +434,22 @@ export default function ChildDashboard() {
   }, [])
 
   const handleActivitySelectorStart = useCallback((activity: ScheduleItem) => {
-    console.log("Starting activity from selector:", activity)
-    handleScheduleActivityStart(activity)
-  }, [handleScheduleActivityStart])
+    // CRITICAL: Re-check activity status from current state before starting
+    const currentActivity = scheduleActivities.find(a => a.id === activity.id)
+    
+    if (!currentActivity) {
+      console.error('❌ Activity not found in current state:', activity.id)
+      return
+    }
+    
+    if (currentActivity.status === 'completed') {
+      console.warn('⛔ BLOCKED: Activity already completed:', currentActivity.subject, 'Status:', currentActivity.status)
+      return
+    }
+    
+    console.log("✅ Starting activity from selector:", currentActivity.subject, 'Status:', currentActivity.status)
+    handleScheduleActivityStart(currentActivity)
+  }, [handleScheduleActivityStart, scheduleActivities])
 
   const handleActivityComplete = useCallback(() => {
     if (selectedActivity) {

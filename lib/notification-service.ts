@@ -140,16 +140,19 @@ class NotificationService {
     })
   }
 
-  async notifyMedicineTaken(parentId: string, childId: string, childName: string, medicationId: string) {
+  async notifyMedicineTaken(parentId: string, childId: string, childName: string, medicationId: string, medicineName?: string) {
+    const timestamp = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+    const medicineDisplay = medicineName || 'thuốc'
     return this.sendNotification({
       userId: parentId,
       childId,
       type: 'medicine_taken',
       title: '💊 Đã uống thuốc',
-      message: `${childName} đã uống thuốc đúng giờ lúc ${new Date().toLocaleTimeString('vi-VN')}`,
+      message: `${childName} đã uống thuốc ${medicineDisplay} vào lúc ${timestamp}`,
       activityId: medicationId,
       metadata: {
         medicationId,
+        medicineName: medicineDisplay,
         takenAt: new Date().toISOString(),
         childName
       }

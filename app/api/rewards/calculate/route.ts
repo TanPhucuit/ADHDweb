@@ -160,62 +160,32 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // 4. Tính toán điểm sao theo công thức:
-    // 10 * (số schedule_activity completed + số medicine_notification taken) + 5 * (số action khen-ngoi + dong-vien)
+    // 4. Tính toán điểm sao theo công thức CHÍNH XÁC:
+    // - schedule_activity completed: 5 sao mỗi hoạt động
+    // - medication taken: 10 sao mỗi lần uống thuốc
+    // - Không dùng demo data, chỉ dùng dữ liệu thực từ database
     
-    // Generate realistic demo data for display since database might be empty
-    // This ensures the parent dashboard always shows meaningful statistics
-    const currentHour = new Date().getHours()
-    let demoCompletedSchedule = 0
-    let demoTakenMedication = takenMedicationCount || 0 // Use real data if available
-    let demoEncouragementActions = encouragementActionCount || 0 // Use real data if available
+    const finalCompletedSchedule = completedScheduleCount || 0
+    const finalTakenMedication = takenMedicationCount || 0
+    const finalEncouragementActions = encouragementActionCount || 0
     
-    // Add demo schedule activities based on time of day
-    if (currentHour >= 8) {  // Morning activities
-      demoCompletedSchedule += 1  // Morning schedule completed
-      if (demoTakenMedication === 0) demoTakenMedication += 1   // Morning medicine taken
-    }
-    
-    if (currentHour >= 12) { // Afternoon activities  
-      demoCompletedSchedule += 1  // Afternoon schedule
-      if (demoEncouragementActions === 0) demoEncouragementActions += 1  // Parent encouragement
-    }
-    
-    if (currentHour >= 18) { // Evening activities
-      demoTakenMedication += 1   // Evening medicine
-      demoEncouragementActions += 1  // More encouragement
-    }
-    
-    if (currentHour >= 20) { // Night completion
-      demoCompletedSchedule += 1  // Evening schedule completed
-    }
-    
-    // Force some demo schedule activities for demo purposes
-    demoCompletedSchedule = Math.max(demoCompletedSchedule, 2)
-    
-    // Use demo values to ensure realistic display
-    const finalCompletedSchedule = Math.max(completedScheduleCount || 0, demoCompletedSchedule)
-    const finalTakenMedication = Math.max(takenMedicationCount || 0, demoTakenMedication)
-    const finalEncouragementActions = Math.max(encouragementActionCount || 0, demoEncouragementActions)
-    
-    const scheduleAndMedicineStars = finalCompletedSchedule + finalTakenMedication
-    const encouragementStars = finalEncouragementActions
-    const totalStars = (10 * scheduleAndMedicineStars) + (5 * encouragementStars)
+    // Công thức đúng:
+    // schedule_activity: 5 sao mỗi hoạt động hoàn thành
+    // medication: 10 sao mỗi lần uống thuốc
+    // encouragement: 5 sao mỗi lần được khen/động viên (bonus)
+    const scheduleStars = finalCompletedSchedule * 5
+    const medicationStars = finalTakenMedication * 10
+    const encouragementStars = finalEncouragementActions * 5
+    const totalStars = scheduleStars + medicationStars + encouragementStars
 
     console.log('📊 Final calculation results:', {
       originalChildId: childId,
       mappedChildId: dataChildId,
-      currentHour,
-      demoCompletedSchedule,
-      demoTakenMedication,
-      demoEncouragementActions,
-      originalCompletedSchedule: completedScheduleCount,
-      originalTakenMedication: takenMedicationCount,
-      originalEncouragementActions: encouragementActionCount,
-      completedSchedule: finalCompletedSchedule,
-      takenMedication: finalTakenMedication,
-      encouragementActions: finalEncouragementActions,
-      scheduleAndMedicineStars,
+      completedScheduleCount: finalCompletedSchedule,
+      takenMedicationCount: finalTakenMedication,
+      encouragementActionCount: finalEncouragementActions,
+      scheduleStars,
+      medicationStars,
       encouragementStars,
       totalStars
     })
@@ -223,9 +193,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       totalStars,
       breakdown: {
-        scheduleStars: finalCompletedSchedule * 10,
-        medicationStars: finalTakenMedication * 10,
-        encouragementStars: finalEncouragementActions * 5,
+        scheduleStars,
+        medicationStars,
+        encouragementStars,
         completedScheduleCount: finalCompletedSchedule,
         takenMedicationCount: finalTakenMedication,
         encouragementActionCount: finalEncouragementActions

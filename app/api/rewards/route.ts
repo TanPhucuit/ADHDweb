@@ -59,12 +59,15 @@ const calculateRewardsFromDatabase = async (childId: string) => {
   console.log('  - Taken medications:', medicationCount)
   console.log('  - Schedule activities:', scheduleActivities)
   
+  // CÔNG THỨC ĐÚNG:
+  // - schedule_activity completed: 5 sao mỗi hoạt động
+  // - medication taken: 10 sao mỗi lần uống thuốc
   return {
     scheduleActivities: scheduleCount,
-    scheduleStars: scheduleCount * 10, // 10 stars per completed schedule activity
+    scheduleStars: scheduleCount * 5, // 5 stars per completed schedule activity
     medicationLogs: medicationCount,
-    medicationStars: medicationCount * 10,
-    totalStars: (scheduleCount * 10) + (medicationCount * 10) // Updated calculation
+    medicationStars: medicationCount * 10, // 10 stars per taken medication
+    totalStars: (scheduleCount * 5) + (medicationCount * 10)
   }
 }
 
