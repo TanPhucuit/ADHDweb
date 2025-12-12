@@ -80,8 +80,10 @@ export async function GET(request: NextRequest) {
     let fidgetLevel = 0
     if (restlessnessData && restlessnessData.length > 0) {
       const totalRestlessness = restlessnessData.reduce((sum, item) => sum + (item.restlessness_rate || 0), 0)
-      fidgetLevel = Math.round(totalRestlessness / restlessnessData.length)
-      console.log('🔄 Restlessness data points:', restlessnessData.length, 'Average:', fidgetLevel)
+      const averageRestlessness = totalRestlessness / restlessnessData.length
+      // Convert decimal to percentage (0.18 -> 18%)
+      fidgetLevel = Math.round(averageRestlessness * 100)
+      console.log('🔄 Restlessness data points:', restlessnessData.length, 'Average decimal:', averageRestlessness, 'Percentage:', fidgetLevel)
     } else {
       console.log('⚠️ No restlessness data found')
     }
@@ -111,7 +113,10 @@ export async function GET(request: NextRequest) {
     }
 
     // If no data found, use demo data to show UI works
-    const hasData = averageHeartRate > 0 || fidgetLevel > 0 || focusTimeToday > 0
+    // Check if we actually fetched data (arrays exist), not just if values > 0
+    const hasData = (heartRateData && heartRateData.length > 0) || 
+                    (restlessnessData && restlessnessData.length > 0) || 
+                    (focusTimeData && focusTimeData.length > 0)
     
     if (!hasData) {
       console.log('⚠️ No real data found, using demo data to demonstrate features')
