@@ -52,7 +52,7 @@ export function ReportsHeader({ child }: ReportsHeaderProps) {
 
       console.log('📸 Creating canvas from HTML...')
       
-      // Create canvas from HTML
+      // Create canvas from HTML with extensive color overrides
       const canvas = await html2canvas(mainElement, {
         scale: 2,
         useCORS: true,
@@ -67,18 +67,48 @@ export function ReportsHeader({ child }: ReportsHeaderProps) {
                  element.tagName === 'IFRAME'
         },
         onclone: (clonedDoc) => {
-          // Remove problematic CSS that uses lab() color function
+          // Override ALL problematic CSS colors
           const style = clonedDoc.createElement('style')
           style.textContent = `
             * {
               color-scheme: normal !important;
             }
-            [style*="lab("] {
+            /* Override all lab(), lch(), oklab(), oklab() colors */
+            [style*="lab("], 
+            [style*="lch("], 
+            [style*="oklab("], 
+            [style*="oklab("] {
+              color: #000000 !important;
+              background-color: #ffffff !important;
+              border-color: #cccccc !important;
+            }
+            /* Force standard colors on all chart elements */
+            .recharts-layer,
+            .recharts-surface,
+            [class*="recharts"] {
+              color: #000000 !important;
+              fill: currentColor !important;
+              stroke: currentColor !important;
+            }
+            /* Override Tailwind's modern color functions */
+            [class*="bg-"], 
+            [class*="text-"], 
+            [class*="border-"] {
               color: inherit !important;
-              background-color: transparent !important;
+              background-color: inherit !important;
+              border-color: inherit !important;
             }
           `
           clonedDoc.head.appendChild(style)
+          
+          // Remove all inline styles with lab() colors
+          const allElements = clonedDoc.querySelectorAll('*')
+          allElements.forEach(el => {
+            const style = el.getAttribute('style')
+            if (style && (style.includes('lab(') || style.includes('lch(') || style.includes('oklab(') || style.includes('oklab('))) {
+              el.removeAttribute('style')
+            }
+          })
         }
       })
       
