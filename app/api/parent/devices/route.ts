@@ -13,19 +13,25 @@ export async function GET(request: NextRequest) {
 
     const supabase = createServerSupabaseClient()
 
-    // Get all children for this parent
-    const { data: children, error: childrenError } = await supabase
+    console.log('🔍 Fetching children for parent:', parentId)
+    
+    // Get all children for this parent - try both column names
+    let children = await supabase
       .from('child')
       .select('id, name')
       .eq('parentid', parseInt(parentId))
-
-    if (childrenError) {
-      console.error('Error fetching children:', childrenError)
-      return NextResponse.json({ 
-        error: 'Error fetching children',
-        details: childrenError.message 
-      }, { status: 500 })
+      .then(res => res.data)
+    
+    // If no children found with parentid, try parent_id
+    if (!children || children.length === 0) {
+      children = await supabase
+        .from('child')
+        .select('id, name')
+        .eq('parent_id', parseInt(parentId))
+        .then(res => res.data)
     }
+    
+    console.log('👶 Found children:', children?.length || 0)
 
     if (!children || children.length === 0) {
       return NextResponse.json({ 

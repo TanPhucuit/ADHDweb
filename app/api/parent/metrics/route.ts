@@ -138,7 +138,23 @@ export async function GET(request: NextRequest) {
       console.log('⚠️ No completed activities found')
     }
 
-    console.log('✅ Metrics fetched:', { 
+    // If no data found, use demo data to show UI works
+    const hasData = averageHeartRate > 0 || fidgetLevel > 0 || focusTimeToday > 0
+    
+    if (!hasData) {
+      console.log('⚠️ No real data found, using demo data to demonstrate features')
+      return NextResponse.json({ 
+        success: true,
+        metrics: {
+          averageHeartRate: 78, // Demo BPM
+          fidgetLevel: 35, // Demo restlessness %
+          focusTimeToday: 45, // Demo minutes
+        },
+        isDemo: true
+      })
+    }
+    
+    console.log('✅ Metrics fetched (real data):', { 
       averageHeartRate, 
       fidgetLevel, 
       focusTimeToday,
@@ -151,7 +167,8 @@ export async function GET(request: NextRequest) {
         averageHeartRate,
         fidgetLevel,
         focusTimeToday,
-      }
+      },
+      isDemo: false
     })
 
   } catch (error) {

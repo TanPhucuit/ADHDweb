@@ -132,8 +132,9 @@ export async function generateAIResponse(messages: OpenAIMessage[]): Promise<str
   } catch (error) {
     console.error("OpenAI API Error:", error)
 
-    // Fallback to mock response if API fails
-    return getFallbackResponse(messages)
+    // Return error message instead of fallback
+    // Fallback causes loop and user confusion
+    throw error
   }
 }
 
