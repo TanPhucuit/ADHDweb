@@ -64,6 +64,7 @@ export function ReportsHeader({ child }: ReportsHeaderProps) {
       if (detailedData) {
         (detailedData as HTMLElement).style.display = 'block'
         console.log('✅ Detailed data tables included in PDF')
+      }
       
       // REMOVE ALL CHART CARDS COMPLETELY
       const chartCards = clonedMain.querySelectorAll('.bg-white')
@@ -208,11 +209,12 @@ export function ReportsHeader({ child }: ReportsHeaderProps) {
         title: "Xuất PDF thành công!",
         description: `Đã lưu file ${fileName}`,
       })
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error exporting PDF:", error)
+      const errorMessage = error instanceof Error ? error.message : "Không thể xuất báo cáo"
       toast({
         title: "Lỗi xuất PDF",
-        description: "Không thể xuất báo cáo. Vui lòng thử lại.",
+        description: errorMessage,
         variant: "destructive",
       })
     } finally {
