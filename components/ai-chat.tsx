@@ -116,7 +116,7 @@ export function AIChat({ context, childId }: AIChatProps) {
         medicationLogs = []
       }
 
-      // Build detailed analysis for Dr.AI context
+      // Build VERY DETAILED analysis for Dr.AI context
       const medicationAdherence = medicationLogs.length > 0 
         ? Math.round((medicationLogs.filter((log: any) => log.taken).length / medicationLogs.length) * 100)
         : 0
@@ -124,6 +124,10 @@ export function AIChat({ context, childId }: AIChatProps) {
       const recentActivities = medicationLogs.length
       const totalStars = rewardProfile?.totalPointsEarned || 0
       const currentLevel = rewardProfile?.level || 1
+      
+      // Calculate more specific stats
+      const completedActivitiesCount = medicationLogs.filter((log: any) => log.taken).length
+      const missedMedications = medicationLogs.filter((log: any) => !log.taken).length
       
       const data = {
         child: child || { name: "Bạn nhỏ", age: 8 },
@@ -156,6 +160,11 @@ export function AIChat({ context, childId }: AIChatProps) {
           medicationAdherence: `${medicationAdherence}%`,
           weeklyActivities: recentActivities,
           currentStreak: rewardProfile?.streakDays || 0,
+          completedCount: completedActivitiesCount,
+          missedCount: missedMedications,
+          totalMedicationLogs: medicationLogs.length,
+          rewardStars: totalStars,
+          analysisDetail: `Trẻ đã hoàn thành ${completedActivitiesCount} lần uống thuốc, bỏ lỡ ${missedMedications} lần. Tỷ lệ tuân thủ: ${medicationAdherence}%. Tổng ${totalStars} ngôi sao thưởng, cấp độ ${currentLevel}.`,
         },
       }
 
@@ -406,16 +415,22 @@ export function AIChat({ context, childId }: AIChatProps) {
           messages: [
             {
               role: "system",
-              content: `Bạn là Dr. AI, một chuyên gia tư vấn ADHD chuyên nghiệp và thân thiện. 
+              content: `Bạn là Dr. AI, chuyên gia tư vấn ADHD. 
               
-              Thông tin về trẻ:
-              ${JSON.stringify(contextData, null, 2)}
+              DỮ LIỆU TRẺ - PHÂN TÍCH CỤ THỂ:
+              ${contextData.stats?.analysisDetail || JSON.stringify(contextData, null, 2)}
               
-              Hãy trả lời bằng tiếng Việt, sử dụng thông tin trên để đưa ra lời khuyên cá nhân hóa. 
-              Luôn tích cực, khuyến khích và đưa ra các gợi ý thực tế. 
-              Nếu cần tư vấn y tế chuyên sâu, hãy khuyên gặp bác sĩ chuyên khoa.
+              YÊU CẦU TRẢ LỜI:
+              - PHẢI sử dụng SỐ LIỆU cụ thể từ dữ liệu trên
+              - Phân tích xu hướng (tăng/giảm/ổn định)
+              - Đưa ra 2-3 khuyến nghị CỤ THỂ với bước làm rõ ràng
+              - So sánh với mức chuẩn (nếu biết)
+              - Đề xuất hành động NGAY và KẾ HOẠCH 1-2 tuần tới
               
-              ${context ? `Context thêm: ${context}` : ""}`,
+              Ví dụ TỐT: "Con đang có tỷ lệ tuân thủ 85%, cao hơn mức trung bình 75%. Để duy trì, hãy..."
+              Ví dụ XẤU: "Nên uống thuốc đều đặn" (quá chung chung)
+              
+              ${context ? `Context: ${context}` : ""}`,
             },
             ...messages.slice(-5).map((msg) => ({
               role: msg.role,

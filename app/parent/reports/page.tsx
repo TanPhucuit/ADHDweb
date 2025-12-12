@@ -240,12 +240,19 @@ export default function ReportsPage() {
 
         <DateRangeSelector selectedRange={dateRange} onRangeChange={setDateRange} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <FocusScoreChart sessions={sessions} reports={reports} childId={child?.id ? String(child.id) : ''} />
-          <LearningPerformanceChart childId={child?.id ? String(child.id) : ''} />
+        {/* Charts removed - data only in PDF */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">📊 Báo cáo chi tiết</h2>
+          <p className="text-gray-600 mb-4">
+            Nhấn nút "Xuất PDF" ở trên để xem báo cáo đầy đủ với:
+          </p>
+          <ul className="space-y-2 text-gray-700">
+            <li>✅ Tất cả hoạt động đã hoàn thành</li>
+            <li>✅ Lịch sử uống thuốc chi tiết</li>
+            <li>✅ Can thiệp của phụ huynh</li>
+            <li>✅ Thống kê và phân tích</li>
+          </ul>
         </div>
-
-        <TimeDistributionChart parentId={user?.id ? String(user.id) : ''} />
 
         <HistoricalDataTable parentId={user?.id ? String(user.id) : ''} />
 

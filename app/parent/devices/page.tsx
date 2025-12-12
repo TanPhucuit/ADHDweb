@@ -47,13 +47,24 @@ export default function ParentDevicesPage() {
 
   const fetchDevices = async (id: string) => {
     try {
+      console.log('📱 Fetching devices for parent:', id)
       const response = await fetch(`/api/parent/devices?parentId=${id}`)
       if (response.ok) {
         const data = await response.json()
+        console.log('📱 Devices fetched:', data.devices?.length || 0, 'devices', data.devices)
         setDevices(data.devices || [])
+        
+        if (!data.devices || data.devices.length === 0) {
+          console.warn('⚠️ No devices found for parent. Check:')
+          console.warn('1. Parent has children in database')
+          console.warn('2. Children have devices in database')
+          console.warn('3. Column names match (child_id, parentid)')
+        }
+      } else {
+        console.error('❌ Failed to fetch devices:', response.status, response.statusText)
       }
     } catch (error) {
-      console.error('Error fetching devices:', error)
+      console.error('❌ Error fetching devices:', error)
     }
   }
 
