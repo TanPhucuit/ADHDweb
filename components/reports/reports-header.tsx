@@ -78,6 +78,26 @@ export function ReportsHeader({ child }: ReportsHeaderProps) {
         }
       })
       
+      // CRITICAL: Remove ALL stylesheets and classes to avoid lab() colors
+      const allElements = clonedMain.querySelectorAll('*')
+      allElements.forEach(el => {
+        // Remove all classes (which might reference lab() colors in CSS)
+        el.removeAttribute('class')
+        // Keep only inline styles with safe colors
+        const style = el.getAttribute('style')
+        if (style) {
+          // Remove any style with lab/lch/oklab
+          if (style.includes('lab(') || style.includes('lch(') || style.includes('oklab(')) {
+            el.removeAttribute('style')
+          }
+        }
+      })
+      
+      // Remove all style tags
+      clonedMain.querySelectorAll('style, link[rel="stylesheet"]').forEach(el => el.remove())
+      
+      console.log('✅ Cleaned DOM for PDF export')
+      
       // Create canvas from modified HTML
       const canvas = await html2canvas(clonedMain, {
         scale: 2,

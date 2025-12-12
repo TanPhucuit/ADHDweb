@@ -401,6 +401,12 @@ export function AIChat({ context, childId }: AIChatProps) {
 
       const data = await response.json()
       console.log('✅ Chat response received:', data)
+      
+      // Check if response has error
+      if (data.error || !data.content) {
+        console.error('❌ API returned error:', data.error)
+        throw new Error(data.error || 'No content in response')
+      }
 
       // Generate action cards based on user message
       const actionCards = generateActionCards(currentInput, childData)
@@ -408,7 +414,7 @@ export function AIChat({ context, childId }: AIChatProps) {
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: data.content || "Xin lỗi, tôi không thể trả lời câu hỏi này lúc này.",
+        content: data.content,
         timestamp: new Date(),
         actionCards: actionCards.length > 0 ? actionCards : undefined,
       }
