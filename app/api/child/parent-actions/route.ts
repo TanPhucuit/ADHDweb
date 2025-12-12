@@ -30,12 +30,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Lấy TẤT CẢ các actions của parent này (không giới hạn ngày)
+    console.log('🔍 Fetching actions for parentid:', child.parentid)
     const { data: actions, error: actionsError } = await supabase
       .from('action')
       .select('*')
       .eq('parentid', child.parentid)
       .order('timestamp', { ascending: false })
-      .limit(100) // Giới hạn 100 actions gần nhất
+      .limit(500) // Tăng lên 500 actions gần nhất
 
     if (actionsError) {
       console.error('❌ Error fetching actions:', actionsError)
@@ -63,11 +64,26 @@ export async function GET(request: NextRequest) {
     }))
 
     console.log('✅ Found', notifications.length, 'parent actions for child', childId)
+    console.log('📊 Parent actions summary:', {
+      parentId: child.parentid,
+      childId,
+      totalActions: notifications.length,
+      recentActions: notifications.slice(0, 5).map(n => ({
+        id: n.id,
+        message: n.message,
+        timestamp: n.timestamp
+      }))
+    })
 
     return NextResponse.json({ 
       success: true,
       notifications,
-      count: notifications.length
+      count: notifications.length,
+      debug: {
+        parentId: child.parentid,
+        childId,
+        totalFetched: notifications.length
+      }
     })
 
   } catch (error) {

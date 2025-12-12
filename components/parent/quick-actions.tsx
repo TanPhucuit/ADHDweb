@@ -6,6 +6,7 @@ import { MessageSquare, Coffee, Trophy, Heart, Clock, MessageCircle, Calendar, X
 import { ScheduleModal } from "./schedule-modal"
 import { useToast } from "@/hooks/use-toast" // Import useToast hook
 import { showCustomToast } from "@/components/ui/custom-toast" // Import custom toast
+import { instantNotificationService } from "@/lib/instant-notification-service" // Import instant notification service
 
 interface QuickActionsProps {
   selectedChildId?: string
@@ -96,6 +97,16 @@ export function QuickActions({ selectedChildId, parentId }: QuickActionsProps) {
             title: "Thành công",
             description: "Hành động đã được ghi nhận thành công!",
           }) // Show success toast
+
+          // Send instant notification to child via Supabase Realtime
+          if (selectedChildId) {
+            console.log('📨 Sending instant notification to child:', selectedChildId)
+            await instantNotificationService.sendInstantNotification(
+              selectedChildId,
+              actionName
+            )
+            console.log('✅ Instant notification sent')
+          }
         } catch (jsonError) {
           console.error("❌ Error parsing JSON response:", jsonError)
           showCustomToast("Phản hồi từ server không hợp lệ.", "error")

@@ -113,12 +113,15 @@ export async function GET(request: NextRequest) {
       })
     }
     
-    // Now get completed activities for these schedules
+    // Now get ALL completed activities for these schedules (no date limit)
+    console.log('🔍 Fetching completed activities for schedules:', scheduleIds)
     const { data: activities, error: activitiesError } = await supabase
       .from('schedule_activity')
       .select('*')
       .in('scheduleid', scheduleIds)
       .eq('status', 'completed')
+      .order('end_time_stamp', { ascending: false })
+      .limit(500) // Tăng lên 500 activities gần nhất
     
     if (activitiesError) {
       console.log('❌ Error fetching activities:', activitiesError)
@@ -191,6 +194,8 @@ export async function GET(request: NextRequest) {
       .select('*')
       .in('childid', childIds)
       .eq('status', 'taken')
+      .order('takentime', { ascending: false })
+      .limit(500) // Tăng lên 500 medications gần nhất
     
     if (medicationsError) {
       console.log('❌ Error fetching medications:', medicationsError)

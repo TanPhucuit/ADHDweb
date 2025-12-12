@@ -3,11 +3,13 @@
 import { useEffect, useState, useCallback } from "react"
 import { apiService } from "@/lib/api-service"
 import { notificationService } from "@/lib/notification-service"
+import { instantNotificationService } from "@/lib/instant-notification-service"
 import type { Child, FocusSession, ScheduleItem, MedicationLog, User } from "@/lib/types"
 import { ChildHeader } from "@/components/child/child-header"
 import { FocusMonster } from "@/components/child/focus-monster"
 import { ActivitySelector } from "@/components/child/activity-selector"
 import { BreakTimer } from "@/components/child/break-timer"
+import { InstantNotificationPopup } from "@/components/child/instant-notification-popup"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { CalendarIcon, TimerIcon, AwardIcon, MusicIcon, BrainIcon, PillIcon, Star, Trophy, Gift } from "lucide-react"
@@ -65,6 +67,9 @@ export default function ChildDashboard() {
   const [loading, setLoading] = useState(true)
   const [showRewardAnimation, setShowRewardAnimation] = useState(false)
   const [lastRewardGain, setLastRewardGain] = useState(0)
+  
+  // Instant notifications state
+  const [instantNotifications, setInstantNotifications] = useState<any[]>([])
 
   // Load data from API
   const loadData = useCallback(async (childId: string) => {
@@ -249,6 +254,36 @@ export default function ChildDashboard() {
       }
     }
   }, [child])
+
+  // Subscribe to instant notifications from parent
+  useEffect(() => {
+    if (!child?.id) return
+
+    console.log('🔔 Setting up instant notification subscription for child:', child.id)
+
+    const unsubscribe = instantNotificationService.subscribeToChildNotifications(
+      child.id,
+      (notification) => {
+        console.log('📨 Received instant notification:', notification)
+        
+        // Add notification to stack
+        setInstantNotifications(prev => [...prev, notification])
+        
+        // Play notification sound (optional)
+        try {
+          const audio = new Audio('/notification.mp3')
+          audio.play().catch(e => console.log('Could not play sound:', e))
+        } catch (e) {
+          console.log('Audio not supported')
+        }
+      }
+    )
+
+    return () => {
+      console.log('🔕 Cleaning up instant notification subscription')
+      unsubscribe()
+    }
+  }, [child?.id])
 
   // Show reward animation
   const showRewardGain = useCallback((points: number) => {
@@ -822,6 +857,17 @@ export default function ChildDashboard() {
           </>
         )}
       </main>
+
+      {/* Instant Notification Popups - Float on top without overlay */}
+      {instantNotifications.map((notification, index) => (
+        <InstantNotificationPopup
+          key={notification.id}
+          notification={notification}
+          onClose={() => {
+            setInstantNotifications(prev => prev.filter(n => n.id !== notification.id))
+          }}
+        />
+      ))}
     </div>
   )
 }
