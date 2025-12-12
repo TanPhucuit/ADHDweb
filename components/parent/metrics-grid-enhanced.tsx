@@ -30,22 +30,30 @@ export function EnhancedMetricsGrid({ child, todayReport, currentSession }: Enha
 
   useEffect(() => {
     const fetchMetrics = async () => {
+      if (!child?.id) {
+        setMetricsLoading(false)
+        return
+      }
+
       try {
         const response = await fetch(`/api/parent/metrics?childId=${child.id}`)
         if (response.ok) {
           const data = await response.json()
-          setMetricsData(data.metrics)
+          console.log('📊 Enhanced metrics loaded:', data.metrics)
+          if (data.metrics) {
+            setMetricsData(data.metrics)
+          }
+        } else {
+          console.error('Failed to fetch enhanced metrics:', response.status)
         }
       } catch (error) {
-        console.error('Error fetching metrics:', error)
+        console.error('Error fetching enhanced metrics:', error)
       } finally {
         setMetricsLoading(false)
       }
     }
 
-    if (child?.id) {
-      fetchMetrics()
-    }
+    fetchMetrics()
   }, [child?.id])
 
   const { focusTimeToday, averageHeartRate, fidgetLevel } = metricsData

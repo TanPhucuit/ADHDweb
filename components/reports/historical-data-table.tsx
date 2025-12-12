@@ -37,6 +37,11 @@ export function HistoricalDataTable({ parentId }: HistoricalDataTableProps) {
 
   useEffect(() => {
     const fetchActions = async () => {
+      if (!parentId) {
+        setLoading(false)
+        return
+      }
+      
       try {
         setLoading(true)
         const response = await fetch(`/api/parent/actions/list?parentId=${parentId}`)
@@ -51,9 +56,7 @@ export function HistoricalDataTable({ parentId }: HistoricalDataTableProps) {
       }
     }
 
-    if (parentId) {
-      fetchActions()
-    }
+    fetchActions()
   }, [parentId])
 
   // Map action labels to Vietnamese names
