@@ -1,4 +1,4 @@
-import { createBrowserSupabaseClient } from './supabase'
+import { createClient } from '@supabase/supabase-js'
 
 export interface InstantNotification {
   id: string
@@ -11,7 +11,10 @@ export interface InstantNotification {
 }
 
 class InstantNotificationService {
-  private supabase = createBrowserSupabaseClient()
+  private supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+  )
   private listeners = new Map<string, ((notification: InstantNotification) => void)[]>()
 
   /**
