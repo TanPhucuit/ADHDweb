@@ -84,8 +84,14 @@ export default function ReportsPage() {
         setIsLoading(false)
         return
       }
-      const childrenData = await apiService.getParentChildren(parentIdStr)
-      console.log("[v0] Children data received:", childrenData?.length || 0, "children", childrenData)
+      let childrenData
+      try {
+        childrenData = await apiService.getParentChildren(parentIdStr)
+        console.log("[v0] Children data received:", childrenData?.length || 0, "children", childrenData)
+      } catch (error) {
+        console.error('[v0] Error fetching children:', error)
+        childrenData = []
+      }
 
       if (childrenData && childrenData.length > 0) {
         const childData = childrenData[0] // Use first child

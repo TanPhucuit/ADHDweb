@@ -204,16 +204,22 @@ class ApiService {
   // Parent - Children Management
   async getParentChildren(parentId: string): Promise<any[]> {
     try {
+      console.log('📡 API: Fetching children for parent:', parentId)
       const response = await fetch(`${this.baseUrl}/parent/children?parentId=${parentId}`)
       const result = await response.json()
       
+      console.log('📦 API response:', response.ok, result)
+      
       if (!response.ok) {
+        console.error('❌ API error:', result.error)
         throw new Error(result.error || 'Failed to fetch parent children')
       }
       
-      return result.data || []
+      const children = result.data || []
+      console.log('👶 Children found:', children.length)
+      return children
     } catch (error) {
-      console.error('Error fetching parent children:', error)
+      console.error('💥 Error fetching parent children:', error)
       throw error
     }
   }

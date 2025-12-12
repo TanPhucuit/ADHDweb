@@ -14,19 +14,52 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Parent ID is required' }, { status: 400 })
     }
 
-    // Get children for this parent
-    const { data, error } = await supabase
+    // Try different column names for parent relationship
+    let data = null
+    let error = null
+    
+    // Try 1: parentid column
+    const result1 = await supabase
       .from('child')
       .select('*')
       .eq('parentid', parentId)
       .order('childid', { ascending: true })
+    
+    if (result1.data && result1.data.length > 0) {
+      data = result1.data
+      console.log('✅ Found', data.length, 'children using parentid column')
+    } else {
+      // Try 2: parent_id column
+      const result2 = await supabase
+        .from('child')
+        .select('*')
+        .eq('parent_id', parentId)
+        .order('childid', { ascending: true })
+      
+      if (result2.data && result2.data.length > 0) {
+        data = result2.data
+        console.log('✅ Found', data.length, 'children using parent_id column')
+      } else {
+        // Try 3: Check all children to see what's in database
+        const result3 = await supabase
+          .from('child')
+          .select('childid, full_name, parentid, parent_id')
+          .limit(5)
+        
+        console.log('🔍 Sample children in database:', result3.data)
+        console.log('⚠️ No children found for parent', parentId)
+        data = []
+      }
+      
+      error = result2.error
+    }
 
-    if (error) {
+    if (error && !data) {
       console.error('❌ Database error:', error)
       return NextResponse.json({ error: 'Database error: ' + error.message }, { status: 500 })
     }
 
-    console.log('✅ Found', data?.length || 0, 'children for parent', parentId)
+    console.log('📊 Final result:', data?.length || 0, 'children for parent', parentId)
 
     // Convert database format to API format
     const children = data?.map(child => ({
