@@ -32,14 +32,27 @@ export async function GET(request: NextRequest) {
     console.log('📊 Fetching metrics for child:', childId)
     
     // First check if ANY data exists for this child
-    const allData = await supabase
+    const { data: allData, error: allDataError } = await supabase
       .from('result')
       .select('*')
       .eq('childid', parseInt(childId))
       .limit(5)
-      .then(res => res.data)
     
+    console.log('🔍 Query error:', allDataError)
     console.log('🔍 ALL data for child', childId, ':', JSON.stringify(allData, null, 2))
+    
+    // If still no data, return it in response for debugging
+    if (!allData || allData.length === 0) {
+      return NextResponse.json({ 
+        success: false,
+        error: 'No data found for child',
+        debug: {
+          childId,
+          queryError: allDataError?.message || null,
+          attemptedQuery: `SELECT * FROM result WHERE childid = ${childId}`
+        }
+      })
+    }
     
     // Query result table directly by childid (no created_at column)
     let heartRateData = await supabase
