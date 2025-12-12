@@ -50,6 +50,7 @@ import { SubjectPerformanceChart } from "@/components/reports/subject-performanc
 import { TimeDistributionChart } from "@/components/reports/time-distribution-chart"
 import { HistoricalDataTable } from "@/components/reports/historical-data-table"
 import { LearningPerformanceChart } from "@/components/reports/learning-performance-chart"
+import { DetailedDataTables } from "@/components/reports/detailed-data-tables"
 import { GoBackButton } from "@/components/ui/go-back-button"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
@@ -62,6 +63,15 @@ export default function ReportsPage() {
   const [sessions, setSessions] = useState<FocusSession[]>([])
   const [dateRange, setDateRange] = useState("7days")
   const [isLoading, setIsLoading] = useState(true)
+  const [detailedData, setDetailedData] = useState<{
+    scheduleActivities: any[]
+    medicationLogs: any[]
+    parentActions: any[]
+  }>({
+    scheduleActivities: [],
+    medicationLogs: [],
+    parentActions: []
+  })
 
   console.log("[v0] ReportsPage state:", { user: !!user, loading, isLoading, child: !!child })
 
@@ -121,6 +131,26 @@ export default function ReportsPage() {
           activities: activities?.length || 0, 
           medications: medications?.length || 0, 
           rewards: rewards?.totalStars || 0 
+        })
+
+        // Load parent actions for detailed report
+        let parentActions = []
+        try {
+          const actionsResponse = await fetch(`/api/parent/actions?childId=${childIdStr}`)
+          if (actionsResponse.ok) {
+            const actionsData = await actionsResponse.json()
+            parentActions = actionsData.actions || []
+            console.log('[v0] Parent actions loaded:', parentActions.length)
+          }
+        } catch (error) {
+          console.error('[v0] Error loading parent actions:', error)
+        }
+
+        // Save detailed data for PDF export
+        setDetailedData({
+          scheduleActivities: activities || [],
+          medicationLogs: medications || [],
+          parentActions: parentActions
         })
 
         // Create mock reports from real data
@@ -218,6 +248,13 @@ export default function ReportsPage() {
         <TimeDistributionChart parentId={user?.id ? String(user.id) : ''} />
 
         <HistoricalDataTable parentId={user?.id ? String(user.id) : ''} />
+
+        {/* Hidden component for detailed PDF export */}
+        <DetailedDataTables 
+          childId={child?.id ? String(child.id) : ''}
+          childName={child.name}
+          data={detailedData}
+        />
       </main>
     </div>
   )

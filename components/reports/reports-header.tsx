@@ -50,7 +50,7 @@ export function ReportsHeader({ child }: ReportsHeaderProps) {
         throw new Error("Không tìm thấy nội dung báo cáo")
       }
 
-      console.log('📸 Preparing PDF export - text only mode...')
+      console.log('📸 Preparing PDF export - text + detailed data mode...')
       
       // Clone main content  
       const clonedMain = mainElement.cloneNode(true) as HTMLElement
@@ -58,6 +58,12 @@ export function ReportsHeader({ child }: ReportsHeaderProps) {
       clonedMain.style.position = 'absolute'
       clonedMain.style.left = '-9999px'
       clonedMain.style.top = '0'
+      
+      // IMPORTANT: Make DetailedDataTables visible for PDF export
+      const detailedData = clonedMain.querySelector('#detailed-report-data, .detailed-report-data')
+      if (detailedData) {
+        (detailedData as HTMLElement).style.display = 'block'
+        console.log('✅ Detailed data tables included in PDF')
       
       // REMOVE ALL CHART CARDS COMPLETELY
       const chartCards = clonedMain.querySelectorAll('.bg-white')
