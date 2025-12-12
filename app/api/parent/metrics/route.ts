@@ -31,22 +31,22 @@ export async function GET(request: NextRequest) {
     // 1. Get average heart rate (BPM) from result table
     console.log('📊 Fetching heart rate for child:', childId)
     
-    // Try child_id first
-    let heartRateData = await supabase
-      .from('result')
-      .select('bpm')
+    // IMPORTANT: Query by device_id, not child_id
+    // Get devices for this child first
+    const { data: devices } = await supabase
+      .from('devices')
+      .select('id')
       .eq('child_id', parseInt(childId))
-      .gte('created_at', startOfDay.toISOString())
-      .lt('created_at', endOfDay.toISOString())
-      .not('bpm', 'is', null)
-      .then(res => res.data)
     
-    // If no data, try childid column
-    if (!heartRateData || heartRateData.length === 0) {
+    const deviceIds = devices?.map(d => d.id) || []
+    console.log('📱 Found devices for child:', deviceIds)
+    
+    let heartRateData = null
+    if (deviceIds.length > 0) {
       heartRateData = await supabase
         .from('result')
         .select('bpm')
-        .eq('childid', parseInt(childId))
+        .in('device_id', deviceIds)
         .gte('created_at', startOfDay.toISOString())
         .lt('created_at', endOfDay.toISOString())
         .not('bpm', 'is', null)
@@ -65,22 +65,12 @@ export async function GET(request: NextRequest) {
     // 2. Get average restlessness rate from result table
     console.log('📊 Fetching restlessness for child:', childId)
     
-    // Try child_id first
-    let restlessnessData = await supabase
-      .from('result')
-      .select('restlessness_rate')
-      .eq('child_id', parseInt(childId))
-      .gte('created_at', startOfDay.toISOString())
-      .lt('created_at', endOfDay.toISOString())
-      .not('restlessness_rate', 'is', null)
-      .then(res => res.data)
-    
-    // If no data, try childid column
-    if (!restlessnessData || restlessnessData.length === 0) {
+    let restlessnessData = null
+    if (deviceIds.length > 0) {
       restlessnessData = await supabase
         .from('result')
         .select('restlessness_rate')
-        .eq('childid', parseInt(childId))
+        .in('device_id', deviceIds)
         .gte('created_at', startOfDay.toISOString())
         .lt('created_at', endOfDay.toISOString())
         .not('restlessness_rate', 'is', null)
@@ -96,46 +86,28 @@ export async function GET(request: NextRequest) {
       console.log('⚠️ No restlessness data found')
     }
 
-    // 3. Get total focus time from completed schedule_activity
-    console.log('📊 Fetching completed activities for child:', childId)
+    // 3. Get total focus time from result table (focus_time column)
+    console.log('📊 Fetching focus time for child:', childId)
     
-    // Try child_id first
-    let completedActivities = await supabase
-      .from('schedule_activity')
-      .select('start_time, end_time, completed_at')
-      .eq('child_id', parseInt(childId))
-      .eq('status', 'completed')
-      .gte('completed_at', startOfDay.toISOString())
-      .lt('completed_at', endOfDay.toISOString())
-      .not('start_time', 'is', null)
-      .not('end_time', 'is', null)
-      .then(res => res.data)
-    
-    // If no data, try childid column
-    if (!completedActivities || completedActivities.length === 0) {
-      completedActivities = await supabase
-        .from('schedule_activity')
-        .select('start_time, end_time, completed_at')
-        .eq('childid', parseInt(childId))
-        .eq('status', 'completed')
-        .gte('completed_at', startOfDay.toISOString())
-        .lt('completed_at', endOfDay.toISOString())
-        .not('start_time', 'is', null)
-        .not('end_time', 'is', null)
+    let focusTimeData = null
+    if (deviceIds.length > 0) {
+      focusTimeData = await supabase
+        .from('result')
+        .select('focus_time')
+        .in('device_id', deviceIds)
+        .gte('created_at', startOfDay.toISOString())
+        .lt('created_at', endOfDay.toISOString())
+        .not('focus_time', 'is', null)
         .then(res => res.data)
     }
 
     let focusTimeToday = 0
-    if (completedActivities && completedActivities.length > 0) {
-      completedActivities.forEach(activity => {
-        const startTime = new Date(activity.start_time)
-        const endTime = new Date(activity.end_time)
-        const durationMinutes = Math.round((endTime.getTime() - startTime.getTime()) / 60000)
-        focusTimeToday += durationMinutes
-      })
-      console.log('⏱️ Completed activities:', completedActivities.length, 'Total time:', focusTimeToday, 'mins')
+    if (focusTimeData && focusTimeData.length > 0) {
+      // Get the most recent focus_time value
+      focusTimeToday = focusTimeData[focusTimeData.length - 1]?.focus_time || 0
+      console.log('⏱️ Focus time records:', focusTimeData.length, 'Most recent:', focusTimeToday, 'mins')
     } else {
-      console.log('⚠️ No completed activities found')
+      console.log('⚠️ No focus time data found')
     }
 
     // If no data found, use demo data to show UI works
