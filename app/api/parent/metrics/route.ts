@@ -60,12 +60,17 @@ export async function GET(request: NextRequest) {
 
     let averageHeartRate = 0
     if (heartRateData && heartRateData.length > 0) {
+      console.log('📋 RAW heart rate data:', JSON.stringify(heartRateData, null, 2))
       const totalBpm = heartRateData.reduce((sum, item) => sum + (item.bpm || 0), 0)
       averageHeartRate = Math.round(totalBpm / heartRateData.length)
-      console.log('💓 Heart rate data points:', heartRateData.length, 'Average:', averageHeartRate)
-      console.log('📋 All heart rate data:', heartRateData)
+      console.log('💓 Heart rate calculation:', {
+        dataPoints: heartRateData.length,
+        totalBpm,
+        average: averageHeartRate,
+        values: heartRateData.map(d => d.bpm)
+      })
     } else {
-      console.log('⚠️ No heart rate data found')
+      console.log('⚠️ No heart rate data found for child:', childId, 'devices:', deviceIds)
     }
 
     // 2. Get average restlessness rate from result table
@@ -85,14 +90,20 @@ export async function GET(request: NextRequest) {
 
     let fidgetLevel = 0
     if (restlessnessData && restlessnessData.length > 0) {
+      console.log('📋 RAW restlessness data:', JSON.stringify(restlessnessData, null, 2))
       const totalRestlessness = restlessnessData.reduce((sum, item) => sum + (item.restlessness_rate || 0), 0)
       const averageRestlessness = totalRestlessness / restlessnessData.length
       // Convert decimal to percentage (0.18 -> 18%)
       fidgetLevel = Math.round(averageRestlessness * 100)
-      console.log('🔄 Restlessness data points:', restlessnessData.length, 'Average decimal:', averageRestlessness, 'Percentage:', fidgetLevel)
-      console.log('📋 All restlessness data:', restlessnessData)
+      console.log('🔄 Restlessness calculation:', {
+        dataPoints: restlessnessData.length,
+        totalRestlessness,
+        averageDecimal: averageRestlessness,
+        percentage: fidgetLevel,
+        values: restlessnessData.map(d => d.restlessness_rate)
+      })
     } else {
-      console.log('⚠️ No restlessness data found')
+      console.log('⚠️ No restlessness data found for child:', childId, 'devices:', deviceIds)
     }
 
     // 3. Get total focus time from result table (focus_time column)
@@ -112,12 +123,16 @@ export async function GET(request: NextRequest) {
 
     let focusTimeToday = 0
     if (focusTimeData && focusTimeData.length > 0) {
+      console.log('📋 RAW focus time data:', JSON.stringify(focusTimeData, null, 2))
       // Get the first record (latest after DESC order)
       focusTimeToday = focusTimeData[0]?.focus_time || 0
-      console.log('⏱️ Focus time records:', focusTimeData.length, 'Latest value:', focusTimeToday, 'mins')
-      console.log('📋 All focus time data:', focusTimeData)
+      console.log('⏱️ Focus time calculation:', {
+        records: focusTimeData.length,
+        latestValue: focusTimeToday,
+        allValues: focusTimeData.map(d => d.focus_time)
+      })
     } else {
-      console.log('⚠️ No focus time data found')
+      console.log('⚠️ No focus time data found for child:', childId, 'devices:', deviceIds)
     }
 
     console.log('✅ Metrics fetched from database:', { 

@@ -43,19 +43,22 @@ export async function GET(request: NextRequest) {
     // Get all devices for these children
     const childIds = children.map(c => c.childid)
     console.log('🔍 Looking for devices with child_ids:', childIds)
+    
+    // Try without order first to see if that's the issue
     const { data: devices, error: devicesError } = await supabase
       .from('devices')
       .select('*')
       .in('child_id', childIds)
-      .order('created_at', { ascending: true })
 
     if (devicesError) {
-      console.error('Error fetching devices:', devicesError)
+      console.error('❌ Error fetching devices:', devicesError)
       return NextResponse.json({ 
         error: 'Error fetching devices',
         details: devicesError.message 
       }, { status: 500 })
     }
+    
+    console.log('📱 Raw devices fetched:', devices?.length || 0, devices)
 
     // Combine devices with child names and ensure device_type is set
     const devicesWithChildNames = (devices || []).map(device => {
