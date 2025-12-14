@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+import { createServerSupabaseClient } from '@/lib/supabase'
 
 export async function GET() {
   try {
     console.log('🔍 Checking database schema...')
+    
+    const supabase = createServerSupabaseClient()
     
     // Check schedule_activity schema
     const { data: scheduleData, error: scheduleError } = await supabase
