@@ -79,34 +79,6 @@ export function LoginForm() {
       </CardHeader>
 
       <CardContent className="space-y-6">
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-          <div className="text-sm">
-            <h3 className="font-semibold text-blue-700 mb-3">📋 Tài khoản có sẵn trong hệ thống:</h3>
-            
-            <div className="space-y-3">
-              <div>
-                <p className="font-medium text-blue-600 mb-1">👨‍👩‍👧‍👦 Phụ huynh:</p>
-                <ul className="text-xs text-blue-600 space-y-1 ml-4">
-                  <li>• nguyen.lan@gmail.com</li>
-                  <li>• tran.minh@gmail.com</li>
-                  <li>• le.hong@gmail.com</li>
-                </ul>
-              </div>
-              
-              <div>
-                <p className="font-medium text-green-600 mb-1">👶 Trẻ em:</p>
-                <ul className="text-xs text-green-600 space-y-1 ml-4">
-                  <li>• minhan@child.com (Phạm Minh Anh)</li>
-                  <li>• baonam@child.com (Trần Bắc Nam)</li>
-                  <li>• thaomy@child.com (Nguyễn Thảo My)</li>
-                </ul>
-              </div>
-              
-              <p className="text-xs text-gray-600 italic mt-2">💡 Mật khẩu: demo123</p>
-            </div>
-          </div>
-        </div>
-
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-3">
@@ -162,21 +134,6 @@ export function LoginForm() {
           <a href="/register" className="text-primary hover:underline font-medium">
             Đăng ký ngay
           </a>
-        </div>
-
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-          <h3 className="text-sm font-medium text-gray-700 mb-3">Available Test Accounts:</h3>
-          <div className="text-xs text-gray-600 space-y-1">
-            <div><strong>Children:</strong></div>
-            <div>• minhan@child.com (Phạm Minh Anh)</div>
-            <div>• baonam@child.com (Trần Bảo Nam)</div>
-            <div>• thaomy@child.com (Nguyễn Thảo My)</div>
-            <div className="mt-2"><strong>Parents:</strong></div>
-            <div>• demo@parent.com (Nguyễn Văn An)</div>
-            <div>• phamthimai@gmail.com (Phạm Thị Mai - có con Thảo My)</div>
-            <div>• nguyenvantuan@gmail.com (Nguyễn Văn Tuấn)</div>
-            <div className="text-gray-500 mt-2">Password children: demo123 | Password parents: demo123 or matkhau123</div>
-          </div>
         </div>
       </CardContent>
     </Card>

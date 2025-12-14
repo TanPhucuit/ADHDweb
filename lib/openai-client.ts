@@ -62,11 +62,11 @@ LƯU Ý:
 export async function generateAIResponse(messages: OpenAIMessage[]): Promise<string> {
   try {
     let apiKey = ""
-    let model = "gpt-4o-mini"
+    let model = "gpt-4o"
 
     if (typeof window !== "undefined") {
       apiKey = localStorage.getItem("openai_api_key") || ""
-      model = localStorage.getItem("openai_model") || "gpt-4o-mini"
+      model = localStorage.getItem("openai_model") || "gpt-4o"
     }
 
     // Fallback to environment variables if localStorage is empty
@@ -75,7 +75,7 @@ export async function generateAIResponse(messages: OpenAIMessage[]): Promise<str
       apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY || ""
     }
     if (!model) {
-      model = process.env.OPENAI_MODEL || "gpt-4o-mini"
+      model = process.env.OPENAI_MODEL || "gpt-4o"
     }
     
     console.log('🔑 OpenAI client - API key status:', !!apiKey, 'Model:', model)

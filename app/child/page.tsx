@@ -12,8 +12,7 @@ import { BreakTimer } from "@/components/child/break-timer"
 import { InstantNotificationPopup } from "@/components/child/instant-notification-popup"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { CalendarIcon, TimerIcon, AwardIcon, MusicIcon, BrainIcon, PillIcon, Star, Trophy, Gift } from "lucide-react"
-import Link from "next/link"
+import { Star, Trophy, Gift } from "lucide-react"
 
 // Real auth hook that validates API authentication data
 function useAuth() {
@@ -415,34 +414,7 @@ export default function ChildDashboard() {
     }
   }, [child, showRewardGain, reloadRewardPoints, medicineNotifications])
 
-  // Test notification function
-  const handleTestNotification = useCallback(async () => {
-    if (!child || !parentId) {
-      console.log('❌ Missing child or parent ID for test notification')
-      return
-    }
 
-    try {
-      console.log('🧪 Testing notification for child:', child.id, 'parent:', parentId)
-      
-      const success = await notificationService.notifyChildLogin(
-        parentId,
-        child.id,
-        child.name
-      )
-      
-      if (success) {
-        console.log('✅ Test notification sent successfully')
-        alert(`✅ Test notification đã gửi thành công!\n\nChild: ${child.name}\nParent ID: ${parentId}`)
-      } else {
-        console.log('❌ Failed to send test notification')
-        alert('❌ Gửi test notification thất bại')
-      }
-    } catch (error) {
-      console.error('❌ Error sending test notification:', error)
-      alert(`❌ Lỗi gửi test notification: ${error}`)
-    }
-  }, [child, parentId])
 
   // Activity and focus session handlers
   const handleScheduleActivityStart = useCallback((activity: ScheduleItem) => {
@@ -537,51 +509,6 @@ export default function ChildDashboard() {
     }, 5 * 60 * 1000)
   }, [child])
 
-  const childFeatures = [
-    {
-      href: "/child/schedule",
-      label: "Lịch học hôm nay",
-      icon: CalendarIcon,
-      color: "bg-blue-500",
-      emoji: "📅",
-    },
-    {
-      href: "/child/pomodoro",
-      label: "Timer học tập",
-      icon: TimerIcon,
-      color: "bg-green-500",
-      emoji: "⏰",
-    },
-    {
-      href: "/child/rewards",
-      label: "Điểm thưởng",
-      icon: AwardIcon,
-      color: "bg-yellow-500",
-      emoji: "🏆",
-    },
-    {
-      href: "/child/focus-sounds",
-      label: "Nhạc tập trung",
-      icon: MusicIcon,
-      color: "bg-purple-500",
-      emoji: "🎵",
-    },
-    {
-      href: "/child/medication",
-      label: "Nhắc nhở uống thuốc",
-      icon: PillIcon,
-      color: "bg-red-500",
-      emoji: "💊",
-    },
-    {
-      href: "/child/ai-chat",
-      label: "Trò chuyện với AI",
-      icon: BrainIcon,
-      color: "bg-indigo-500",
-      emoji: "🤖",
-    },
-  ]
-
   if (loading || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-400 to-pink-400">
@@ -666,22 +593,6 @@ export default function ChildDashboard() {
             {/* Activity Selector */}
             {!currentSession && <ActivitySelector scheduleActivities={scheduleActivities} onActivitySelect={handleActivitySelectorStart} />}
 
-            {/* Test Notification Button */}
-            <Card className="bg-gradient-to-r from-blue-100 to-purple-100 backdrop-blur-sm border-0 shadow-lg">
-              <CardContent className="p-4 text-center">
-                <button
-                  onClick={handleTestNotification}
-                  className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-colors"
-                  disabled={!child || !parentId}
-                >
-                  🧪 Test Notification
-                </button>
-                <p className="text-xs text-gray-600 mt-2">
-                  Child: {child?.name || 'N/A'} | Parent ID: {parentId || 'N/A'}
-                </p>
-              </CardContent>
-            </Card>
-
             {/* Enhanced Reward Points Display */}
             <Card className="bg-gradient-to-r from-yellow-100 via-orange-100 to-yellow-200 backdrop-blur-sm border-0 shadow-xl relative overflow-hidden">
               <div className="absolute top-0 right-0 w-20 h-20 bg-yellow-300/20 rounded-full -mr-10 -mt-10"></div>
@@ -723,65 +634,6 @@ export default function ChildDashboard() {
                 </div>
               </CardContent>
             </Card>
-
-            {/* Schedule Activities */}
-            {scheduleActivities.length > 0 && (
-              <Card className="bg-blue-50/90 backdrop-blur-sm border-0 shadow-xl">
-                <CardContent className="p-3 sm:p-6">
-                  <h2 className="text-base sm:text-xl font-bold text-center mb-3 sm:mb-4 text-blue-800">
-                     Lịch học hôm nay ({scheduleActivities.length} hoạt động)
-                  </h2>
-                  <div className="space-y-2 sm:space-y-3">
-                    {scheduleActivities.map((activity) => (
-                      <div key={activity.id} className="bg-white rounded-lg p-3 sm:p-4 shadow-sm border border-blue-200 hover:shadow-md transition-shadow">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-sm sm:text-base text-gray-800">{activity.title}</h3>
-                            <p className="text-xs sm:text-sm text-gray-600">
-                              {activity.startTime} - {activity.endTime}
-                            </p>
-                            {activity.description && (
-                              <p className="text-xs sm:text-sm text-gray-500 mt-1">{activity.description}</p>
-                            )}
-                          </div>
-                          <div className="flex gap-2 ml-3">
-                            {activity.status === 'pending' && !selectedActivity && (
-                              <Button
-                                onClick={() => handleScheduleActivityStart(activity)}
-                                className="bg-green-500 hover:bg-green-600 text-white text-xs px-2 py-1 transition-colors"
-                              >
-                                Bắt đầu
-                              </Button>
-                            )}
-                            {selectedActivity?.id === activity.id && (
-                              <>
-                                <Button
-                                  onClick={handleBreakRequest}
-                                  className="text-xs px-2 py-1 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700"
-                                >
-                                  Xin nghỉ
-                                </Button>
-                                <Button
-                                  onClick={handleActivityComplete}
-                                  className="bg-blue-500 hover:bg-blue-600 text-white text-xs px-2 py-1 transition-colors"
-                                >
-                                  Hoàn thành
-                                </Button>
-                              </>
-                            )}
-                            {activity.status === 'completed' && (
-                              <span className="text-xs text-green-600 font-semibold px-2 py-1 bg-green-100 rounded">
-                                 Hoàn thành
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
 
             {/* Medicine Notifications */}
             {medicineNotifications.length > 0 && (
@@ -831,29 +683,6 @@ export default function ChildDashboard() {
                 </CardContent>
               </Card>
             )}
-
-            {/* Child-friendly Feature Navigation */}
-            <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
-              <CardContent className="p-3 sm:p-6">
-                <h2 className="text-base sm:text-xl font-bold text-center mb-3 sm:mb-6 text-gray-800">
-                   Công cụ học tập của {child?.name}
-                </h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
-                  {childFeatures.map((feature) => (
-                    <Link key={feature.href} href={feature.href}>
-                      <Button
-                        className="h-14 sm:h-20 w-full flex flex-col gap-1 sm:gap-2 bg-white hover:bg-gray-50 border-2 border-gray-200 hover:border-gray-300 transition-all duration-200 transform hover:scale-105 active:scale-95"
-                      >
-                        <div className="text-lg sm:text-2xl">{feature.emoji}</div>
-                        <span className="text-xs sm:text-xs font-medium text-gray-700 text-center leading-tight px-1">
-                          {feature.label}
-                        </span>
-                      </Button>
-                    </Link>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
           </>
         )}
       </main>
