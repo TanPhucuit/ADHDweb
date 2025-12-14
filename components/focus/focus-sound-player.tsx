@@ -117,6 +117,26 @@ const soundTracks: SoundTrack[] = [
     benefits: ["Tĩnh tâm", "Giảm lo âu", "Cân bằng cảm xúc"],
     audioUrl: "/sounds/meditation.mp3",
   },
+  {
+    id: "lofi",
+    name: "Lo-fi Beats",
+    description: "Nhạc lo-fi nhẹ nhàng, phù hợp học tập",
+    category: "ambient",
+    icon: <Music className="w-5 h-5" />,
+    color: "bg-rose-500",
+    benefits: ["Tăng năng suất", "Tạo không khí thoải mái", "Duy trì động lực"],
+    audioUrl: "/sounds/lofi-beats.mp3",
+  },
+  {
+    id: "cafe",
+    name: "Quán cà phê",
+    description: "Tiếng động quán cà phê ấm cúng",
+    category: "ambient",
+    icon: <Timer className="w-5 h-5" />,
+    color: "bg-amber-500",
+    benefits: ["Tạo môi trường làm việc", "Tăng sáng tạo", "Giảm cô đơn"],
+    audioUrl: "/sounds/cafe-ambience.mp3",
+  },
 ]
 
 interface FocusSoundPlayerProps {

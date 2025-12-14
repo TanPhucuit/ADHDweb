@@ -12,7 +12,8 @@ import { BreakTimer } from "@/components/child/break-timer"
 import { InstantNotificationPopup } from "@/components/child/instant-notification-popup"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Star, Trophy, Gift } from "lucide-react"
+import { Star, Trophy, Gift, TimerIcon, AwardIcon, MusicIcon, BrainIcon } from "lucide-react"
+import Link from "next/link"
 
 // Real auth hook that validates API authentication data
 function useAuth() {
@@ -509,6 +510,37 @@ export default function ChildDashboard() {
     }, 5 * 60 * 1000)
   }, [child])
 
+  const childFeatures = [
+    {
+      href: "/child/pomodoro",
+      label: "Timer học tập",
+      icon: TimerIcon,
+      color: "bg-green-500",
+      emoji: "⏰",
+    },
+    {
+      href: "/child/rewards",
+      label: "Điểm thưởng",
+      icon: AwardIcon,
+      color: "bg-yellow-500",
+      emoji: "🏆",
+    },
+    {
+      href: "/child/focus-sounds",
+      label: "Nhạc tập trung",
+      icon: MusicIcon,
+      color: "bg-purple-500",
+      emoji: "🎵",
+    },
+    {
+      href: "/child/ai-chat",
+      label: "Trò chuyện với AI",
+      icon: BrainIcon,
+      color: "bg-indigo-500",
+      emoji: "🤖",
+    },
+  ]
+
   if (loading || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-400 to-pink-400">
@@ -631,6 +663,29 @@ export default function ChildDashboard() {
                       Dành dụm sao để đổi quà nhé!
                     </p>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Child Learning Tools */}
+            <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
+              <CardContent className="p-3 sm:p-6">
+                <h2 className="text-base sm:text-xl font-bold text-center mb-3 sm:mb-6 text-gray-800">
+                  🎯 Công cụ học tập của {child?.name}
+                </h2>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
+                  {childFeatures.map((feature) => (
+                    <Link key={feature.href} href={feature.href}>
+                      <Button
+                        className="h-20 sm:h-24 w-full flex flex-col gap-1 sm:gap-2 bg-white hover:bg-gray-50 border-2 border-gray-200 hover:border-gray-300 transition-all duration-200 transform hover:scale-105 active:scale-95"
+                      >
+                        <div className="text-2xl sm:text-3xl">{feature.emoji}</div>
+                        <span className="text-xs sm:text-sm font-medium text-gray-700 text-center leading-tight px-1">
+                          {feature.label}
+                        </span>
+                      </Button>
+                    </Link>
+                  ))}
                 </div>
               </CardContent>
             </Card>
