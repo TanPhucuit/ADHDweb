@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
           full_name: name,
           email: email,
           password: password, // In production, hash this!
-          created_at: new Date().toISOString(),
+          phone_number: '' // Optional field
         })
         .select()
         .single()
@@ -78,9 +78,9 @@ export async function POST(request: NextRequest) {
     } else if (role === 'child') {
       // Register as child
       // Validate required child fields
-      if (!age || !gender || !parentEmail) {
+      if (!age || !parentEmail) {
         return NextResponse.json({ 
-          error: 'Thiếu thông tin trẻ (tuổi, giới tính, email phụ huynh)' 
+          error: 'Thiếu thông tin trẻ (tuổi, email phụ huynh)' 
         }, { status: 400 })
       }
 
@@ -118,9 +118,8 @@ export async function POST(request: NextRequest) {
           email: email,
           password: password, // In production, hash this!
           age: parseInt(age),
-          gender: gender,
           parentid: parent.parentid,
-          created_at: new Date().toISOString(),
+          class: '' // Optional field, gender not in schema
         })
         .select()
         .single()
@@ -138,39 +137,40 @@ export async function POST(request: NextRequest) {
       const devices = []
       if (device1Uid) {
         const { data: device1, error: device1Error } = await supabase
-          .from('devices')
+          .from('smartwatch')
           .insert({
-            child_id: newChild.childid,
-            device_uid: device1Uid,
-            device_name: 'SmartWatch',
-            device_type: 'smartwatch',
-            created_at: new Date().toISOString(),
+            deviceid: device1Uid, // Use provided UID as deviceid
+            childid: newChild.childid,
+            bpm: null,
+            ring_status: 0
           })
           .select()
           .single()
 
         if (!device1Error && device1) {
-          devices.push(device1)
-          console.log('✅ Device 1 created:', device1Uid)
+          devices.push({ ...device1, device_type: 'smartwatch' })
+          console.log('✅ SmartWatch created:', device1Uid)
+        } else {
+          console.error('❌ Error creating smartwatch:', device1Error)
         }
       }
 
       if (device2Uid) {
         const { data: device2, error: device2Error } = await supabase
-          .from('devices')
+          .from('smartcamera')
           .insert({
-            child_id: newChild.childid,
-            device_uid: device2Uid,
-            device_name: 'SmartCamera',
-            device_type: 'camera',
-            created_at: new Date().toISOString(),
+            deviceid: device2Uid,
+            childid: newChild.childid,
+            liveid: ''
           })
           .select()
           .single()
 
         if (!device2Error && device2) {
-          devices.push(device2)
-          console.log('✅ Device 2 created:', device2Uid)
+          devices.push({ ...device2, device_type: 'smartcamera' })
+          console.log('✅ SmartCamera created:', device2Uid)
+        } else {
+          console.error('❌ Error creating smartcamera:', device2Error)
         }
       }
 
@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
           name: newChild.full_name,
           role: 'child',
           age: newChild.age,
-          gender: newChild.gender
+          parentId: newChild.parentid
         },
         devices: devices,
         message: 'Đăng ký trẻ thành công'
