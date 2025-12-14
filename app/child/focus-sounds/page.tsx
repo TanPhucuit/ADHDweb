@@ -1,22 +1,48 @@
 "use client"
 
-import { useAuth } from "@/lib/auth"
 import { useEffect, useState } from "react"
-import { dataStore } from "@/lib/data-store"
-import type { Child } from "@/lib/types"
+import type { Child, User } from "@/lib/types"
 import { ChildHeader } from "@/components/child/child-header"
 import { FocusSoundPlayer } from "@/components/focus/focus-sound-player"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { GoBackButton } from "@/components/ui/go-back-button"
+
+// Real auth hook
+function useAuth() {
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('adhd-dashboard-user')
+    if (storedUser) {
+      try {
+        const userData = JSON.parse(storedUser)
+        if (userData.id && userData.role && userData.email) {
+          setUser(userData)
+        }
+      } catch (e) {
+        console.error('Error parsing user:', e)
+      }
+    }
+    setLoading(false)
+  }, [])
+
+  return { user, loading }
+}
 
 export default function ChildFocusSoundsPage() {
   const { user, loading } = useAuth()
   const [child, setChild] = useState<Child | null>(null)
 
   useEffect(() => {
-    if (user) {
-      const childData = dataStore.getChildById("child-1")
-      setChild(childData)
+    if (user && user.role === 'child') {
+      // Create child object from user data
+      setChild({
+        id: user.id,
+        name: user.name,
+        parentId: user.parentId || '',
+        age: user.age || 0,
+      } as Child)
     }
   }, [user])
 
@@ -28,13 +54,13 @@ export default function ChildFocusSoundsPage() {
     )
   }
 
-  if (!child) {
+  if (!user || user.role !== 'child') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-400 to-pink-400">
         <div className="text-center text-white">
           <div className="text-6xl mb-4">🔒</div>
-          <h2 className="text-2xl font-heading font-bold mb-2 drop-shadow-lg">Chưa có quyền truy cập</h2>
-          <p className="font-medium drop-shadow">Hãy nhờ bố mẹ thiết lập tài khoản cho con</p>
+          <h2 className="text-2xl font-heading font-bold mb-2 drop-shadow-lg">Chưa đăng nhập</h2>
+          <p className="font-medium drop-shadow">Vui lòng đăng nhập với tài khoản con</p>
         </div>
       </div>
     )
