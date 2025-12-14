@@ -45,7 +45,7 @@ const soundTracks: SoundTrack[] = [
     icon: <Cloud className="w-5 h-5" />,
     color: "bg-blue-500",
     benefits: ["Giảm căng thẳng", "Tăng tập trung", "Che tiếng ồn"],
-    audioUrl: "https://cdn.pixabay.com/download/audio/2022/05/13/audio_257112e4e2.mp3",
+    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
   },
   {
     id: "forest",
@@ -55,7 +55,7 @@ const soundTracks: SoundTrack[] = [
     icon: <TreePine className="w-5 h-5" />,
     color: "bg-green-500",
     benefits: ["Thư giãn tâm trí", "Kết nối thiên nhiên", "Giảm lo âu"],
-    audioUrl: "https://cdn.pixabay.com/download/audio/2022/03/10/audio_4dedf1f94c.mp3",
+    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
   },
   {
     id: "ocean",
@@ -65,7 +65,7 @@ const soundTracks: SoundTrack[] = [
     icon: <Waves className="w-5 h-5" />,
     color: "bg-cyan-500",
     benefits: ["Thư giãn sâu", "Cải thiện giấc ngủ", "Giảm stress"],
-    audioUrl: "https://cdn.pixabay.com/download/audio/2022/06/07/audio_67b94801f2.mp3",
+    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
   },
   {
     id: "white_noise",
@@ -75,7 +75,7 @@ const soundTracks: SoundTrack[] = [
     icon: <Zap className="w-5 h-5" />,
     color: "bg-gray-500",
     benefits: ["Che tiếng ồn", "Tăng tập trung", "Cải thiện học tập"],
-    audioUrl: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_74e0132d27.mp3",
+    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
   },
   {
     id: "pink_noise",
@@ -85,7 +85,7 @@ const soundTracks: SoundTrack[] = [
     icon: <Heart className="w-5 h-5" />,
     color: "bg-pink-500",
     benefits: ["Cải thiện trí nhớ", "Giấc ngủ sâu", "Thư giãn"],
-    audioUrl: "https://cdn.pixabay.com/download/audio/2024/07/30/audio_933e608c92.mp3",
+    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3",
   },
   {
     id: "focus_40hz",
@@ -95,7 +95,7 @@ const soundTracks: SoundTrack[] = [
     icon: <Brain className="w-5 h-5" />,
     color: "bg-purple-500",
     benefits: ["Tăng gamma waves", "Cải thiện nhận thức", "Tập trung cao"],
-    audioUrl: "https://cdn.pixabay.com/download/audio/2023/10/30/audio_c52efad173.mp3",
+    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3",
   },
   {
     id: "study_music",
@@ -105,7 +105,7 @@ const soundTracks: SoundTrack[] = [
     icon: <Music className="w-5 h-5" />,
     color: "bg-indigo-500",
     benefits: ["Tăng động lực", "Duy trì tập trung", "Giảm mệt mỏi"],
-    audioUrl: "https://cdn.pixabay.com/download/audio/2022/08/02/audio_2dff3fee2c.mp3",
+    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3",
   },
   {
     id: "meditation",
@@ -115,7 +115,7 @@ const soundTracks: SoundTrack[] = [
     icon: <Heart className="w-5 h-5" />,
     color: "bg-orange-500",
     benefits: ["Tĩnh tâm", "Giảm lo âu", "Cân bằng cảm xúc"],
-    audioUrl: "https://cdn.pixabay.com/download/audio/2022/03/24/audio_181eb04d23.mp3",
+    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3",
   },
   {
     id: "lofi",
@@ -125,7 +125,7 @@ const soundTracks: SoundTrack[] = [
     icon: <Music className="w-5 h-5" />,
     color: "bg-rose-500",
     benefits: ["Tăng năng suất", "Tạo không khí thoải mái", "Duy trì động lực"],
-    audioUrl: "https://cdn.pixabay.com/download/audio/2023/10/07/audio_b011ba079e.mp3",
+    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3",
   },
   {
     id: "cafe",
@@ -135,7 +135,7 @@ const soundTracks: SoundTrack[] = [
     icon: <Timer className="w-5 h-5" />,
     color: "bg-amber-500",
     benefits: ["Tạo môi trường làm việc", "Tăng sáng tạo", "Giảm cô đơn"],
-    audioUrl: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_12b3968e37.mp3",
+    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3",
   },
 ]
 
@@ -162,6 +162,39 @@ export function FocusSoundPlayer({ onPlayingChange, autoStartWithPomodoro = fals
     },
     [onPlayingChange],
   )
+
+  // Initialize audio element on mount
+  useEffect(() => {
+    const audio = document.createElement('audio')
+    audio.loop = true
+    audio.crossOrigin = "anonymous"
+    
+    audio.addEventListener("loadedmetadata", () => {
+      setDuration(audio.duration)
+    })
+
+    audio.addEventListener("timeupdate", () => {
+      setCurrentTime(audio.currentTime)
+    })
+
+    audio.addEventListener("ended", () => {
+      setIsPlaying(false)
+      setCurrentTime(0)
+    })
+
+    audio.addEventListener("error", (e) => {
+      console.error("Audio loading error:", e)
+      setIsPlaying(false)
+    })
+
+    audioRef.current = audio
+
+    return () => {
+      audio.pause()
+      audio.src = ''
+      audio.remove()
+    }
+  }, [])
 
   useEffect(() => {
     // Auto-start with a focus-friendly track when Pomodoro starts
@@ -194,45 +227,15 @@ export function FocusSoundPlayer({ onPlayingChange, autoStartWithPomodoro = fals
 
     if (audioRef.current) {
       audioRef.current.pause()
+      audioRef.current.src = track.audioUrl
+      audioRef.current.load()
+      
+      audioRef.current.play().catch((error) => {
+        console.error("Audio play error:", error)
+        setIsPlaying(false)
+      })
+      setIsPlaying(true)
     }
-
-    // Create new audio element with error handling
-    const audio = new Audio()
-    audio.loop = true // Most focus sounds should loop
-    audio.volume = isMuted ? 0 : volume[0] / 100
-
-    // Add error handling for missing audio files
-    audio.addEventListener("error", (e) => {
-      console.log("[v0] Audio loading error for track:", track.name, e)
-      // Use a data URL for a silent audio track as fallback
-      const silentAudio =
-        "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmHgU7k9n1unEiBC13yO/eizEIHWq+8+OWT"
-      audio.src = silentAudio
-    })
-
-    audio.addEventListener("loadedmetadata", () => {
-      setDuration(audio.duration)
-    })
-
-    audio.addEventListener("timeupdate", () => {
-      setCurrentTime(audio.currentTime)
-    })
-
-    audio.addEventListener("ended", () => {
-      setIsPlaying(false)
-      setCurrentTime(0)
-    })
-
-    // Set the audio source - use placeholder for now since actual files don't exist
-    audio.src = track.audioUrl
-
-    audioRef.current = audio
-
-    audio.play().catch((error) => {
-      console.log("[v0] Audio play error:", error)
-      setIsPlaying(false)
-    })
-    setIsPlaying(true)
   }
 
   const handlePlayPause = () => {
@@ -243,7 +246,7 @@ export function FocusSoundPlayer({ onPlayingChange, autoStartWithPomodoro = fals
       setIsPlaying(false)
     } else {
       audioRef.current.play().catch((error) => {
-        console.log("[v0] Audio play error:", error)
+        console.error("Audio play error:", error)
         setIsPlaying(false)
       })
       setIsPlaying(true)
