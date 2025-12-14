@@ -24,10 +24,8 @@ export function RegisterForm() {
     confirmPassword: "",
     agreeToTerms: false,
     // Child-specific fields
-    parentName: "",
     parentEmail: "",
     age: "",
-    gender: "",
     device1Uid: "",
     device2Uid: "",
   })
@@ -58,8 +56,6 @@ export function RegisterForm() {
           email: formData.email,
           password: formData.password,
           age: formData.age,
-          gender: formData.gender,
-          parentName: formData.parentName,
           parentEmail: formData.parentEmail,
           device1Uid: formData.device1Uid,
           device2Uid: formData.device2Uid,
@@ -74,17 +70,23 @@ export function RegisterForm() {
         return
       }
 
-      // Save user to localStorage
-      localStorage.setItem('user', JSON.stringify(data.user))
+      // Show success message and stay on page
+      alert(data.message || 'Đăng ký thành công! Vui lòng đăng nhập để tiếp tục.')
       
-      alert(data.message || 'Đăng ký thành công!')
-
-      // Redirect based on role
-      if (role === 'parent') {
-        window.location.href = '/parent'
-      } else {
-        window.location.href = '/child'
-      }
+      // Reset form
+      setFormData({
+        name: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
+        agreeToTerms: false,
+        parentEmail: "",
+        age: "",
+        device1Uid: "",
+        device2Uid: "",
+      })
+      
+      setIsLoading(false)
     } catch (error) {
       console.error('Registration error:', error)
       alert('Lỗi kết nối. Vui lòng thử lại!')
@@ -170,44 +172,14 @@ export function RegisterForm() {
                     value={formData.age}
                     onChange={(e) => updateFormData("age", e.target.value)}
                     className="h-12 bg-background border-border focus:border-primary transition-colors"
+                    required={role === "child"}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="gender" className="text-sm font-medium">
-                    Giới tính
-                  </Label>
-                  <select
-                    id="gender"
-                    value={formData.gender}
-                    onChange={(e) => updateFormData("gender", e.target.value)}
-                    className="w-full h-12 px-3 bg-background border border-border rounded-md focus:border-primary transition-colors"
-                  >
-                    <option value="">Chọn...</option>
-                    <option value="male">Nam</option>
-                    <option value="female">Nữ</option>
-                    <option value="other">Khác</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="parentName" className="text-sm font-medium">
-                  Tên phụ huynh quản lý
-                </Label>
-                <Input
-                  id="parentName"
-                  type="text"
-                  placeholder="Nguyễn Văn A"
-                  value={formData.parentName}
-                  onChange={(e) => updateFormData("parentName", e.target.value)}
-                  className="h-12 bg-background border-border focus:border-primary transition-colors"
-                  required={role === "child"}
-                />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="parentEmail" className="text-sm font-medium">
-                  Email phụ huynh
+                  Email phụ huynh quản lý
                 </Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
