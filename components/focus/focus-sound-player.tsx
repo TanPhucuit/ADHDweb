@@ -33,109 +33,39 @@ interface SoundTrack {
   color: string
   duration?: number // in seconds, undefined for loops
   benefits: string[]
-  audioUrl: string // In real app, this would be actual audio files
+  youtubeId: string // YouTube video ID
 }
 
 const soundTracks: SoundTrack[] = [
   {
-    id: "rain",
-    name: "Tiếng mưa nhẹ",
-    description: "Âm thanh mưa rơi nhẹ nhàng, thư giãn",
-    category: "nature",
-    icon: <Cloud className="w-5 h-5" />,
-    color: "bg-blue-500",
-    benefits: ["Giảm căng thẳng", "Tăng tập trung", "Che tiếng ồn"],
-    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-  },
-  {
-    id: "forest",
-    name: "Rừng xanh",
-    description: "Tiếng chim hót và lá cây xào xạc",
-    category: "nature",
-    icon: <TreePine className="w-5 h-5" />,
-    color: "bg-green-500",
-    benefits: ["Thư giãn tâm trí", "Kết nối thiên nhiên", "Giảm lo âu"],
-    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
-  },
-  {
-    id: "ocean",
-    name: "Sóng biển",
-    description: "Âm thanh sóng biển vỗ bờ êm dịu",
-    category: "nature",
-    icon: <Waves className="w-5 h-5" />,
-    color: "bg-cyan-500",
-    benefits: ["Thư giãn sâu", "Cải thiện giấc ngủ", "Giảm stress"],
-    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
-  },
-  {
-    id: "white_noise",
-    name: "White Noise",
-    description: "Âm thanh trắng giúp che tiếng ồn",
-    category: "white_noise",
-    icon: <Zap className="w-5 h-5" />,
-    color: "bg-gray-500",
-    benefits: ["Che tiếng ồn", "Tăng tập trung", "Cải thiện học tập"],
-    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
-  },
-  {
-    id: "pink_noise",
-    name: "Pink Noise",
-    description: "Âm thanh hồng, mềm mại hơn white noise",
-    category: "white_noise",
-    icon: <Heart className="w-5 h-5" />,
-    color: "bg-pink-500",
-    benefits: ["Cải thiện trí nhớ", "Giấc ngủ sâu", "Thư giãn"],
-    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3",
-  },
-  {
-    id: "focus_40hz",
-    name: "Binaural 40Hz",
-    description: "Tần số 40Hz giúp tăng cường tập trung",
-    category: "binaural",
-    icon: <Brain className="w-5 h-5" />,
-    color: "bg-purple-500",
-    benefits: ["Tăng gamma waves", "Cải thiện nhận thức", "Tập trung cao"],
-    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3",
-  },
-  {
-    id: "study_music",
-    name: "Nhạc học tập",
-    description: "Nhạc không lời giúp tập trung học bài",
+    id: "lofi_study",
+    name: "Lofi Study Music",
+    description: "Nhạc lo-fi giúp tập trung học tập",
     category: "ambient",
     icon: <Music className="w-5 h-5" />,
     color: "bg-indigo-500",
-    benefits: ["Tăng động lực", "Duy trì tập trung", "Giảm mệt mỏi"],
-    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3",
+    benefits: ["Tăng tập trung", "Giảm căng thẳng", "Tạo không khí học tập"],
+    youtubeId: "RG2IK8oRZNA",
   },
   {
-    id: "meditation",
-    name: "Thiền định",
-    description: "Âm thanh thiền giúp tĩnh tâm",
-    category: "ambient",
-    icon: <Heart className="w-5 h-5" />,
-    color: "bg-orange-500",
-    benefits: ["Tĩnh tâm", "Giảm lo âu", "Cân bằng cảm xúc"],
-    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3",
-  },
-  {
-    id: "lofi",
-    name: "Lo-fi Beats",
-    description: "Nhạc lo-fi nhẹ nhàng, phù hợp học tập",
+    id: "peaceful_piano",
+    name: "Peaceful Piano",
+    description: "Nhạc piano êm dịu, thư giãn",
     category: "ambient",
     icon: <Music className="w-5 h-5" />,
-    color: "bg-rose-500",
-    benefits: ["Tăng năng suất", "Tạo không khí thoải mái", "Duy trì động lực"],
-    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3",
+    color: "bg-purple-500",
+    benefits: ["Thư giãn tâm trí", "Cải thiện sáng tạo", "Giảm lo âu"],
+    youtubeId: "qQzf-xzZO7M",
   },
   {
-    id: "cafe",
-    name: "Quán cà phê",
-    description: "Tiếng động quán cà phê ấm cúng",
+    id: "study_beats",
+    name: "Study Beats",
+    description: "Nhạc nền tập trung cho học tập",
     category: "ambient",
-    icon: <Timer className="w-5 h-5" />,
-    color: "bg-amber-500",
-    benefits: ["Tạo môi trường làm việc", "Tăng sáng tạo", "Giảm cô đơn"],
-    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3",
+    icon: <Brain className="w-5 h-5" />,
+    color: "bg-rose-500",
+    benefits: ["Tăng hiệu suất", "Duy trì động lực", "Tập trung sâu"],
+    youtubeId: "R1r9nLYcqBU",
   },
 ]
 
@@ -151,9 +81,9 @@ export function FocusSoundPlayer({ onPlayingChange, autoStartWithPomodoro = fals
   const [isMuted, setIsMuted] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
-  const [selectedCategory, setSelectedCategory] = useState<string>("nature")
+  const [selectedCategory, setSelectedCategory] = useState<string>("ambient")
 
-  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const playerRef = useRef<any>(null)
   const progressInterval = useRef<NodeJS.Timeout | null>(null)
 
   const handlePlayingChangeCallback = useCallback(
@@ -163,43 +93,20 @@ export function FocusSoundPlayer({ onPlayingChange, autoStartWithPomodoro = fals
     [onPlayingChange],
   )
 
-  // Initialize audio element on mount
+  // Load YouTube IFrame API
   useEffect(() => {
-    const audio = document.createElement('audio')
-    audio.loop = true
-    audio.crossOrigin = "anonymous"
-    
-    audio.addEventListener("loadedmetadata", () => {
-      setDuration(audio.duration)
-    })
-
-    audio.addEventListener("timeupdate", () => {
-      setCurrentTime(audio.currentTime)
-    })
-
-    audio.addEventListener("ended", () => {
-      setIsPlaying(false)
-      setCurrentTime(0)
-    })
-
-    audio.addEventListener("error", (e) => {
-      console.error("Audio loading error:", e)
-      setIsPlaying(false)
-    })
-
-    audioRef.current = audio
-
-    return () => {
-      audio.pause()
-      audio.src = ''
-      audio.remove()
+    if (typeof window !== 'undefined' && !(window as any).YT) {
+      const tag = document.createElement('script')
+      tag.src = 'https://www.youtube.com/iframe_api'
+      const firstScriptTag = document.getElementsByTagName('script')[0]
+      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag)
     }
   }, [])
 
   useEffect(() => {
     // Auto-start with a focus-friendly track when Pomodoro starts
     if (autoStartWithPomodoro && !currentTrack) {
-      const defaultTrack = soundTracks.find((track) => track.id === "rain")
+      const defaultTrack = soundTracks[0]
       if (defaultTrack) {
         handleTrackSelect(defaultTrack)
       }
@@ -207,14 +114,57 @@ export function FocusSoundPlayer({ onPlayingChange, autoStartWithPomodoro = fals
   }, [autoStartWithPomodoro, currentTrack])
 
   useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = isMuted ? 0 : volume[0] / 100
+    if (playerRef.current && playerRef.current.setVolume) {
+      const vol = isMuted ? 0 : volume[0]
+      playerRef.current.setVolume(vol)
     }
   }, [volume, isMuted])
 
   useEffect(() => {
     handlePlayingChangeCallback(isPlaying, currentTrack?.name)
   }, [isPlaying, currentTrack?.name, handlePlayingChangeCallback])
+
+  useEffect(() => {
+    // Update progress
+    if (isPlaying && playerRef.current?.getCurrentTime) {
+      progressInterval.current = setInterval(() => {
+        if (playerRef.current?.getCurrentTime && playerRef.current?.getDuration) {
+          setCurrentTime(playerRef.current.getCurrentTime())
+          setDuration(playerRef.current.getDuration())
+        }
+      }, 1000)
+    } else {
+      if (progressInterval.current) {
+        clearInterval(progressInterval.current)
+      }
+    }
+
+    return () => {
+      if (progressInterval.current) {
+        clearInterval(progressInterval.current)
+      }
+    }
+  }, [isPlaying])
+
+  const onPlayerReady = (event: any) => {
+    playerRef.current = event.target
+    playerRef.current.setVolume(volume[0])
+    if (isPlaying) {
+      playerRef.current.playVideo()
+    }
+  }
+
+  const onPlayerStateChange = (event: any) => {
+    // 1 = playing, 2 = paused, 0 = ended
+    if (event.data === 1) {
+      setIsPlaying(true)
+    } else if (event.data === 2) {
+      setIsPlaying(false)
+    } else if (event.data === 0) {
+      // Ended - loop the video
+      playerRef.current?.playVideo()
+    }
+  }
 
   const handleTrackSelect = (track: SoundTrack) => {
     if (currentTrack?.id === track.id) {
@@ -224,39 +174,31 @@ export function FocusSoundPlayer({ onPlayingChange, autoStartWithPomodoro = fals
 
     setCurrentTrack(track)
     setCurrentTime(0)
+    setIsPlaying(true)
 
-    if (audioRef.current) {
-      audioRef.current.pause()
-      audioRef.current.src = track.audioUrl
-      audioRef.current.load()
-      
-      audioRef.current.play().catch((error) => {
-        console.error("Audio play error:", error)
-        setIsPlaying(false)
-      })
-      setIsPlaying(true)
+    // If player exists, load new video
+    if (playerRef.current?.loadVideoById) {
+      playerRef.current.loadVideoById(track.youtubeId)
+      playerRef.current.playVideo()
     }
   }
 
   const handlePlayPause = () => {
-    if (!audioRef.current || !currentTrack) return
+    if (!playerRef.current || !currentTrack) return
 
     if (isPlaying) {
-      audioRef.current.pause()
+      playerRef.current.pauseVideo()
       setIsPlaying(false)
     } else {
-      audioRef.current.play().catch((error) => {
-        console.error("Audio play error:", error)
-        setIsPlaying(false)
-      })
+      playerRef.current.playVideo()
       setIsPlaying(true)
     }
   }
 
   const handleStop = () => {
-    if (audioRef.current) {
-      audioRef.current.pause()
-      audioRef.current.currentTime = 0
+    if (playerRef.current) {
+      playerRef.current.pauseVideo()
+      playerRef.current.seekTo(0)
       setCurrentTime(0)
       setIsPlaying(false)
     }
@@ -264,8 +206,8 @@ export function FocusSoundPlayer({ onPlayingChange, autoStartWithPomodoro = fals
 
   const handleVolumeChange = (newVolume: number[]) => {
     setVolume(newVolume)
-    if (audioRef.current) {
-      audioRef.current.volume = isMuted ? 0 : newVolume[0] / 100
+    if (playerRef.current?.setVolume) {
+      playerRef.current.setVolume(isMuted ? 0 : newVolume[0])
     }
   }
 
@@ -288,8 +230,51 @@ export function FocusSoundPlayer({ onPlayingChange, autoStartWithPomodoro = fals
 
   const filteredTracks = soundTracks.filter((track) => track.category === selectedCategory)
 
+  // Initialize YouTube Player
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const initPlayer = () => {
+      if ((window as any).YT && (window as any).YT.Player && !playerRef.current) {
+        playerRef.current = new (window as any).YT.Player('youtube-player', {
+          height: '1',
+          width: '1',
+          videoId: soundTracks[0].youtubeId,
+          playerVars: {
+            autoplay: 0,
+            controls: 0,
+            disablekb: 1,
+            fs: 0,
+            modestbranding: 1,
+            playsinline: 1,
+            rel: 0,
+            showinfo: 0,
+            iv_load_policy: 3,
+            loop: 1,
+            playlist: soundTracks[0].youtubeId,
+          },
+          events: {
+            onReady: onPlayerReady,
+            onStateChange: onPlayerStateChange,
+          },
+        })
+      }
+    }
+
+    if ((window as any).YT) {
+      initPlayer()
+    } else {
+      (window as any).onYouTubeIframeAPIReady = initPlayer
+    }
+  }, [])
+
   return (
     <div className="space-y-6">
+      {/* Hidden YouTube Player */}
+      <div style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px' }}>
+        <div id="youtube-player" />
+      </div>
+
       {/* Current Playing Card */}
       {currentTrack && (
         <Card className="border-2 border-blue-200 bg-white/95 backdrop-blur shadow-xl">
