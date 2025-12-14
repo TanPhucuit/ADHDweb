@@ -66,6 +66,14 @@ export default function ChildFocusSoundsPage() {
     )
   }
 
+  if (!child) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-400 to-pink-400">
+        <LoadingSpinner />
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
       <ChildHeader child={child} />
