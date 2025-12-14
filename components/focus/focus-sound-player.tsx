@@ -45,7 +45,7 @@ const soundTracks: SoundTrack[] = [
     icon: <Cloud className="w-5 h-5" />,
     color: "bg-blue-500",
     benefits: ["Giảm căng thẳng", "Tăng tập trung", "Che tiếng ồn"],
-    audioUrl: "/sounds/rain.mp3",
+    audioUrl: "https://cdn.pixabay.com/download/audio/2022/05/13/audio_257112e4e2.mp3",
   },
   {
     id: "forest",
@@ -55,7 +55,7 @@ const soundTracks: SoundTrack[] = [
     icon: <TreePine className="w-5 h-5" />,
     color: "bg-green-500",
     benefits: ["Thư giãn tâm trí", "Kết nối thiên nhiên", "Giảm lo âu"],
-    audioUrl: "/sounds/forest.mp3",
+    audioUrl: "https://cdn.pixabay.com/download/audio/2022/03/10/audio_4dedf1f94c.mp3",
   },
   {
     id: "ocean",
@@ -65,7 +65,7 @@ const soundTracks: SoundTrack[] = [
     icon: <Waves className="w-5 h-5" />,
     color: "bg-cyan-500",
     benefits: ["Thư giãn sâu", "Cải thiện giấc ngủ", "Giảm stress"],
-    audioUrl: "/sounds/ocean.mp3",
+    audioUrl: "https://cdn.pixabay.com/download/audio/2022/06/07/audio_67b94801f2.mp3",
   },
   {
     id: "white_noise",
@@ -75,7 +75,7 @@ const soundTracks: SoundTrack[] = [
     icon: <Zap className="w-5 h-5" />,
     color: "bg-gray-500",
     benefits: ["Che tiếng ồn", "Tăng tập trung", "Cải thiện học tập"],
-    audioUrl: "/sounds/white-noise.mp3",
+    audioUrl: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_74e0132d27.mp3",
   },
   {
     id: "pink_noise",
@@ -85,7 +85,7 @@ const soundTracks: SoundTrack[] = [
     icon: <Heart className="w-5 h-5" />,
     color: "bg-pink-500",
     benefits: ["Cải thiện trí nhớ", "Giấc ngủ sâu", "Thư giãn"],
-    audioUrl: "/sounds/pink-noise.mp3",
+    audioUrl: "https://cdn.pixabay.com/download/audio/2024/07/30/audio_933e608c92.mp3",
   },
   {
     id: "focus_40hz",
@@ -95,7 +95,7 @@ const soundTracks: SoundTrack[] = [
     icon: <Brain className="w-5 h-5" />,
     color: "bg-purple-500",
     benefits: ["Tăng gamma waves", "Cải thiện nhận thức", "Tập trung cao"],
-    audioUrl: "/sounds/binaural-40hz.mp3",
+    audioUrl: "https://cdn.pixabay.com/download/audio/2023/10/30/audio_c52efad173.mp3",
   },
   {
     id: "study_music",
@@ -105,7 +105,7 @@ const soundTracks: SoundTrack[] = [
     icon: <Music className="w-5 h-5" />,
     color: "bg-indigo-500",
     benefits: ["Tăng động lực", "Duy trì tập trung", "Giảm mệt mỏi"],
-    audioUrl: "/sounds/study-music.mp3",
+    audioUrl: "https://cdn.pixabay.com/download/audio/2022/08/02/audio_2dff3fee2c.mp3",
   },
   {
     id: "meditation",
@@ -115,7 +115,7 @@ const soundTracks: SoundTrack[] = [
     icon: <Heart className="w-5 h-5" />,
     color: "bg-orange-500",
     benefits: ["Tĩnh tâm", "Giảm lo âu", "Cân bằng cảm xúc"],
-    audioUrl: "/sounds/meditation.mp3",
+    audioUrl: "https://cdn.pixabay.com/download/audio/2022/03/24/audio_181eb04d23.mp3",
   },
   {
     id: "lofi",
@@ -125,7 +125,7 @@ const soundTracks: SoundTrack[] = [
     icon: <Music className="w-5 h-5" />,
     color: "bg-rose-500",
     benefits: ["Tăng năng suất", "Tạo không khí thoải mái", "Duy trì động lực"],
-    audioUrl: "/sounds/lofi-beats.mp3",
+    audioUrl: "https://cdn.pixabay.com/download/audio/2023/10/07/audio_b011ba079e.mp3",
   },
   {
     id: "cafe",
@@ -135,7 +135,7 @@ const soundTracks: SoundTrack[] = [
     icon: <Timer className="w-5 h-5" />,
     color: "bg-amber-500",
     benefits: ["Tạo môi trường làm việc", "Tăng sáng tạo", "Giảm cô đơn"],
-    audioUrl: "/sounds/cafe-ambience.mp3",
+    audioUrl: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_12b3968e37.mp3",
   },
 ]
 
