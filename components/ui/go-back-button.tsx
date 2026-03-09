@@ -1,25 +1,31 @@
 "use client"
 
-import { useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft } from "@/components/ui/icons"
+import { ArrowLeft } from "lucide-react"
+import Link from "next/link"
 
 interface GoBackButtonProps {
   className?: string
   variant?: "default" | "ghost" | "outline"
 }
 
-export function GoBackButton({ className, variant = "ghost" }: GoBackButtonProps) {
-  const router = useRouter()
+function getBackRoute(pathname: string): string {
+  if (/^\/parent\/.+/.test(pathname)) return "/parent"
+  if (/^\/child\/.+/.test(pathname)) return "/child"
+  return "/"
+}
 
-  const handleGoBack = () => {
-    router.back()
-  }
+export function GoBackButton({ className, variant = "ghost" }: GoBackButtonProps) {
+  const pathname = usePathname()
+  const backRoute = getBackRoute(pathname)
 
   return (
-    <Button variant={variant} size="sm" onClick={handleGoBack} className={`flex items-center gap-2 ${className}`}>
-      <ArrowLeft className="h-4 w-4" />
-      Quay lại
-    </Button>
+    <Link href={backRoute}>
+      <Button variant={variant} size="sm" className={`flex items-center gap-2 ${className ?? ""}`}>
+        <ArrowLeft className="h-4 w-4" />
+        Quay lại
+      </Button>
+    </Link>
   )
 }

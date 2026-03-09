@@ -11,9 +11,10 @@ import { instantNotificationService } from "@/lib/instant-notification-service" 
 interface QuickActionsProps {
   selectedChildId?: string
   parentId?: string
+  onScheduleCreated?: () => void
 }
 
-export function QuickActions({ selectedChildId, parentId }: QuickActionsProps) {
+export function QuickActions({ selectedChildId, parentId, onScheduleCreated }: QuickActionsProps) {
   const [showScheduleModal, setShowScheduleModal] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast() // Initialize toast hook
@@ -37,35 +38,16 @@ export function QuickActions({ selectedChildId, parentId }: QuickActionsProps) {
 
     setIsLoading(true)
     try {
-      // Handle break request separately
+      // Handle break — send notification directly to child
       if (actionLabel === 'nghi-ngoi') {
-        // Record as break action in database
-        const breakResponse = await fetch('/api/break-requests', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            childId: selectedChildId || 'unknown',
-            childName: 'Con', 
-            parentId: parentId,
-            duration: 5
-          })
-        })
-
-        if (breakResponse.ok) {
-          showCustomToast("Đã ghi nhận yêu cầu nghỉ giải lao!", "action-success")
-          toast({
-            title: "Thành công",
-            description: "Đã ghi nhận yêu cầu nghỉ giải lao!",
-          })
-        } else {
-          const errorText = await breakResponse.text()
-          console.error('Break request error:', errorText)
-          showCustomToast("Có lỗi khi ghi nhận nghỉ giải lao.", "error")
-          toast({
-            title: "Lỗi",
-            description: "Có lỗi khi ghi nhận nghỉ giải lao.",
-          })
+        if (selectedChildId) {
+          await instantNotificationService.sendInstantNotification(
+            selectedChildId,
+            'nghi-giai-lao'
+          )
         }
+        showCustomToast("Đã cho con nghỉ giải lao!", "action-success")
+        toast({ title: "Thành công", description: "Đã gửi thông báo nghỉ giải lao cho con!" })
         return
       }
 
@@ -100,12 +82,10 @@ export function QuickActions({ selectedChildId, parentId }: QuickActionsProps) {
 
           // Send instant notification to child via Supabase Realtime
           if (selectedChildId) {
-            console.log('📨 Sending instant notification to child:', selectedChildId)
             await instantNotificationService.sendInstantNotification(
               selectedChildId,
-              actionName
+              actionLabel
             )
-            console.log('✅ Instant notification sent')
           }
         } catch (jsonError) {
           console.error("❌ Error parsing JSON response:", jsonError)
@@ -212,10 +192,11 @@ export function QuickActions({ selectedChildId, parentId }: QuickActionsProps) {
     </Card>
 
     {selectedChildId && (
-      <ScheduleModal 
+      <ScheduleModal
         isOpen={showScheduleModal}
         onClose={() => setShowScheduleModal(false)}
         childId={selectedChildId}
+        onSuccess={onScheduleCreated}
       />
     )}
   </>

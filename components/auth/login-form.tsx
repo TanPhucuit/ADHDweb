@@ -69,6 +69,35 @@ export function LoginForm() {
     }
   }
 
+  const handleDemoLogin = async (demoRole: "child" | "parent") => {
+    setError("")
+    setIsLoading(true)
+    const demoEmail = demoRole === "child" ? "demo-child@adhd.local" : "demo-parent@adhd.local"
+    const demoPassword = "demo123"
+
+    setEmail(demoEmail)
+    setPassword(demoPassword)
+    setRole(demoRole)
+
+    try {
+      const success = await login(demoEmail, demoPassword, demoRole)
+      if (success) {
+        const storedUser = localStorage.getItem("adhd-dashboard-user")
+        if (storedUser) {
+          const loggedInUser = JSON.parse(storedUser)
+          const dashboardRoute = getDashboardRoute(loggedInUser)
+          router.replace(dashboardRoute)
+        }
+      } else {
+        setError("Đăng nhập demo thất bại")
+      }
+    } catch (err) {
+      setError("Có lỗi xảy ra khi đăng nhập demo")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <Card className="w-full shadow-xl">
       <CardHeader className="text-center space-y-4">
@@ -135,6 +164,7 @@ export function LoginForm() {
             Đăng ký ngay
           </a>
         </div>
+
       </CardContent>
     </Card>
   )

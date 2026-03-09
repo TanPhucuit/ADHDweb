@@ -1,18 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/client'
+import { createServerSupabaseClient } from '@/lib/supabase'
 
 export async function POST(request: NextRequest) {
   try {
     const { childId, activities } = await request.json()
-    
+
     if (!childId || !activities || activities.length === 0) {
       return NextResponse.json({ error: 'Child ID and activities are required' }, { status: 400 })
     }
 
-    console.log('🎯 Creating new schedule for child:', childId)
-    console.log('📝 Activities:', activities)
-
-    const supabase = createClient()
+    const supabase = createServerSupabaseClient()
 
     // Step 1: Create a new schedule
     const { data: schedule, error: scheduleError } = await supabase

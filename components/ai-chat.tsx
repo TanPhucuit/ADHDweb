@@ -8,10 +8,17 @@ import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
-import { Send, User, Loader2, Brain, Calendar, Award, Pill, TrendingUp, AlertCircle, Settings } from "lucide-react"
+import { Send, User, Loader2, Brain, Calendar, Award, Pill, TrendingUp, AlertCircle, ExternalLink } from "lucide-react"
 import { apiService } from "@/lib/api-service"
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer"
 import Link from "next/link"
+
+interface ScheduleActivity {
+  subject: string
+  start_time: string
+  end_time: string
+  notes?: string
+}
 
 interface Message {
   id: string
@@ -20,6 +27,7 @@ interface Message {
   timestamp: Date
   suggestions?: string[]
   actionCards?: ActionCard[]
+  scheduleProposal?: ScheduleActivity[]
 }
 
 interface ActionCard {
@@ -27,6 +35,7 @@ interface ActionCard {
   title: string
   description: string
   action: string
+  href: string  // navigation destination
   data?: any
 }
 
@@ -41,21 +50,9 @@ export function AIChat({ context, childId }: AIChatProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [childData, setChildData] = useState<any>(null)
   const [isDataLoading, setIsDataLoading] = useState(true)
-  const [apiConfigured, setApiConfigured] = useState(false)
+  const [applyingSchedule, setApplyingSchedule] = useState<string | null>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    checkApiConfiguration()
-  }, [])
-
-  const checkApiConfiguration = () => {
-    if (typeof window !== "undefined") {
-      const apiKey = localStorage.getItem("openai_api_key") || process.env.NEXT_PUBLIC_OPENAI_API_KEY
-      console.log('🔑 Dr.AI API key check:', !!apiKey, apiKey ? 'Found' : 'Missing')
-      setApiConfigured(!!apiKey)
-    }
-  }
 
   // Load child data and initialize chat
   useEffect(() => {
@@ -63,6 +60,80 @@ export function AIChat({ context, childId }: AIChatProps) {
       loadChildData()
     }
   }, [childId])
+
+  // Persist chat history to localStorage whenever messages change
+  useEffect(() => {
+    if (!childId || messages.length === 0) return
+    localStorage.setItem(`adhd-chat-parent-${childId}`, JSON.stringify(messages.slice(-100)))
+  }, [messages, childId])
+
+  // Parse [SCHEDULE:{...}] tag from AI response using brace-balancing (handles nested JSON)
+  // Falls back to parsing markdown time-table if tag not found and user asked for schedule
+  const parseScheduleFromContent = (content: string, userMessage?: string): { cleaned: string; proposal: ScheduleActivity[] | null } => {
+    // Method 1: Find [SCHEDULE:{...}] tag
+    const markerIdx = content.indexOf('[SCHEDULE:')
+    if (markerIdx !== -1) {
+      const jsonStart = markerIdx + '[SCHEDULE:'.length
+      let depth = 0
+      let jsonEnd = -1
+      for (let i = jsonStart; i < content.length; i++) {
+        if (content[i] === '{') depth++
+        else if (content[i] === '}') { depth--; if (depth === 0) { jsonEnd = i + 1; break } }
+      }
+      if (jsonEnd !== -1) {
+        const closingBracket = content.indexOf(']', jsonEnd)
+        if (closingBracket !== -1) {
+          try {
+            const parsed = JSON.parse(content.slice(jsonStart, jsonEnd))
+            const activities: ScheduleActivity[] = parsed.activities || parsed
+            if (Array.isArray(activities) && activities.length > 0) {
+              const cleaned = (content.slice(0, markerIdx) + content.slice(closingBracket + 1)).trim()
+              return { cleaned, proposal: activities }
+            }
+          } catch {}
+        }
+      }
+    }
+
+    // Method 2: Fallback — parse markdown table, extract ONLY academic subjects
+    // Always attempt this when the response contains a time-range table
+    {
+      const subjectKeywords: [RegExp, string][] = [
+        [/tiếng anh|english/i, 'Tiếng Anh'],
+        [/tin học|tin\b/i, 'Tin học'],
+        [/gdcd/i, 'GDCD'],
+        [/toán/i, 'Toán'],
+        [/ngữ văn|văn/i, 'Văn'],
+        [/vật lý|\blý\b/i, 'Vật lý'],
+        [/hóa học|\bhóa\b/i, 'Hóa học'],
+        [/lịch sử|\bsử\b/i, 'Lịch sử'],
+        [/địa lý|\bđịa\b/i, 'Địa lý'],
+        [/sinh học|\bsinh\b/i, 'Sinh học'],
+        [/nhạc|âm nhạc/i, 'Âm nhạc'],
+        [/mỹ thuật|\bvẽ\b/i, 'Mỹ thuật'],
+        [/thể dục/i, 'Thể dục'],
+        [/tự học/i, 'Tự học'],
+      ]
+      const rowRegex = /\|\s*(\d{1,2}:\d{2})\s*[-–]\s*(\d{1,2}:\d{2})\s*\|\s*([^|\n]+?)\s*\|/g
+      const activities: ScheduleActivity[] = []
+      let m
+      while ((m = rowRegex.exec(content)) !== null) {
+        const raw = m[3].trim()
+        // Skip non-academic / lifestyle rows
+        if (/thức dậy|ăn sáng|ăn trưa|ăn tối|ăn uống|chuẩn bị|tại trường|đến trường|về nhà|đi ngủ|\bngủ\b|nghỉ ngơi|nghỉ giải lao|giải lao|vui chơi|thể thao|tự do|giải trí|sinh hoạt|tắm|hoạt động thể|chơi game/i.test(raw)) continue
+        // Find which academic subject this row is about
+        let subject = ''
+        for (const [pattern, name] of subjectKeywords) {
+          if (pattern.test(raw)) { subject = name; break }
+        }
+        if (!subject) continue
+        activities.push({ subject, start_time: m[1], end_time: m[2], notes: '' })
+      }
+      if (activities.length >= 2) return { cleaned: content, proposal: activities }
+    }
+
+    return { cleaned: content, proposal: null }
+  }
 
   const loadChildData = async () => {
     if (!childId) {
@@ -170,18 +241,31 @@ export function AIChat({ context, childId }: AIChatProps) {
 
       setChildData(data)
 
-      // Initialize with personalized welcome message
+      // Restore chat history from localStorage if available
+      const savedHistory = localStorage.getItem(`adhd-chat-parent-${childId}`)
+      if (savedHistory) {
+        try {
+          const parsed = JSON.parse(savedHistory)
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setMessages(parsed.map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) })))
+            setIsDataLoading(false)
+            return
+          }
+        } catch {}
+      }
+
+      // No history — show personalized welcome message
       const welcomeMessage: Message = {
         id: "welcome",
         role: "assistant",
         content: generateWelcomeMessage(data, context),
         timestamp: new Date(),
         suggestions: [
-          "Làm thế nào để cải thiện khả năng tập trung?",
-          "Tạo lịch trình học tập phù hợp",
-          "Tư vấn về thuốc ADHD",
-          "Phương pháp Pomodoro có hiệu quả không?",
-          "Cách xây dựng thói quen tích cực",
+          "Phân tích tiến độ cải thiện của con",
+          "Giúp tôi tạo lịch học phù hợp cho con",
+          "Con tôi thường mất tập trung sau 15 phút, phải làm sao?",
+          "Các phương pháp điều trị ADHD không dùng thuốc",
+          "Làm thế nào để con tuân thủ lịch uống thuốc?",
         ],
       }
 
@@ -203,13 +287,13 @@ export function AIChat({ context, childId }: AIChatProps) {
       const welcomeMessage: Message = {
         id: "welcome",
         role: "assistant",
-        content: "Xin chào! Tôi là Dr. AI, trợ lý ADHD của bạn. Tôi có thể giúp bạn với các câu hỏi về ADHD, lịch trình học tập, và nuôi dạy con.",
+        content: "Xin chào! Tôi là Dr. AI, chuyên gia tư vấn ADHD cho phụ huynh. Tôi có thể giúp bạn phân tích tiến độ của con, tư vấn phương pháp điều trị, và lập kế hoạch học tập phù hợp.",
         timestamp: new Date(),
         suggestions: [
-          "Làm thế nào để cải thiện khả năng tập trung?",
-          "Tạo lịch trình học tập phù hợp",
-          "Tư vấn về thuốc ADHD",
-          "Phương pháp Pomodoro có hiệu quả không?",
+          "Phân tích tiến độ cải thiện của con",
+          "Giúp tôi tạo lịch học phù hợp cho con",
+          "Các phương pháp điều trị ADHD hiệu quả",
+          "Làm thế nào để con tuân thủ lịch uống thuốc?",
         ],
       }
       setMessages([welcomeMessage])
@@ -279,39 +363,6 @@ export function AIChat({ context, childId }: AIChatProps) {
     inputRef.current?.focus()
   }
 
-  const handleActionCard = async (card: ActionCard) => {
-    let response = ""
-
-    switch (card.type) {
-      case "schedule":
-        response =
-          "Tôi sẽ giúp bạn tạo lịch trình học tập phù hợp. Hãy cho tôi biết môn học và thời gian bạn muốn sắp xếp."
-        break
-      case "reward":
-        response = `Bạn hiện có ${childData?.rewardProfile?.currentPoints || 0} điểm. Tôi có thể gợi ý một số phần thưởng phù hợp hoặc cách kiếm thêm điểm.`
-        break
-      case "assessment":
-        response = "Tôi sẽ phân tích tình hình ADHD của bạn dựa trên dữ liệu gần đây và đưa ra khuyến nghị cụ thể."
-        break
-      case "medication":
-        response = "Tôi có thể tư vấn về việc sử dụng thuốc ADHD, tác dụng phụ và cách theo dõi hiệu quả điều trị."
-        break
-      case "focus":
-        response =
-          "Hãy cùng tôi khám phá các kỹ thuật cải thiện tập trung như Pomodoro, mindfulness và tạo môi trường học tập tối ưu."
-        break
-    }
-
-    const assistantMessage: Message = {
-      id: Date.now().toString(),
-      role: "assistant",
-      content: response,
-      timestamp: new Date(),
-    }
-
-    setMessages((prev) => [...prev, assistantMessage])
-  }
-
   const generateActionCards = (userMessage: string, childData: any): ActionCard[] => {
     const cards: ActionCard[] = []
     const message = userMessage.toLowerCase()
@@ -319,9 +370,10 @@ export function AIChat({ context, childId }: AIChatProps) {
     if (message.includes("lịch") || message.includes("thời gian") || message.includes("học")) {
       cards.push({
         type: "schedule",
-        title: "Tạo lịch trình học tập",
-        description: "Lập kế hoạch học tập cá nhân hóa",
-        action: "Tạo lịch trình",
+        title: "Xếp lịch học cho con",
+        description: "Tạo thời khóa biểu mới cho hôm nay",
+        action: "Mở trang chủ",
+        href: "/parent",
       })
     }
 
@@ -329,17 +381,19 @@ export function AIChat({ context, childId }: AIChatProps) {
       cards.push({
         type: "reward",
         title: "Hệ thống thưởng",
-        description: `${childData?.rewardProfile?.currentPoints || 0} điểm hiện có`,
-        action: "Xem phần thưởng",
+        description: `Xem và quản lý điểm thưởng của con`,
+        action: "Đến trang thưởng",
+        href: "/parent/rewards",
       })
     }
 
-    if (message.includes("đánh giá") || message.includes("tiến độ") || message.includes("adhd")) {
+    if (message.includes("đánh giá") || message.includes("tiến độ") || message.includes("adhd") || message.includes("báo cáo")) {
       cards.push({
         type: "assessment",
-        title: "Đánh giá ADHD",
-        description: "Phân tích tình hình và đưa ra khuyến nghị",
-        action: "Xem đánh giá",
+        title: "Báo cáo & Đánh giá",
+        description: "Xem biểu đồ tiến độ và lịch sử hoạt động",
+        action: "Xem báo cáo",
+        href: "/parent/reports",
       })
     }
 
@@ -347,17 +401,19 @@ export function AIChat({ context, childId }: AIChatProps) {
       cards.push({
         type: "medication",
         title: "Quản lý thuốc",
-        description: "Tư vấn và theo dõi việc dùng thuốc",
-        action: "Xem lịch uống thuốc",
+        description: "Thêm, xóa và theo dõi lịch uống thuốc của con",
+        action: "Đến trang thuốc",
+        href: "/parent/medication",
       })
     }
 
     if (message.includes("tập trung") || message.includes("focus") || message.includes("pomodoro")) {
       cards.push({
         type: "focus",
-        title: "Cải thiện tập trung",
-        description: "Kỹ thuật và phương pháp tăng cường tập trung",
-        action: "Học kỹ thuật",
+        title: "Theo dõi tập trung",
+        description: "Xem biểu đồ điểm tập trung và xu hướng",
+        action: "Xem báo cáo",
+        href: "/parent/reports",
       })
     }
 
@@ -367,18 +423,6 @@ export function AIChat({ context, childId }: AIChatProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!input.trim() || isLoading) return
-
-    if (!apiConfigured) {
-      const errorMessage: Message = {
-        id: Date.now().toString(),
-        role: "assistant",
-        content:
-          "⚠️ **Cần cấu hình API Key**\n\nĐể sử dụng tính năng trò chuyện với AI, bạn cần cấu hình OpenAI API Key. Vui lòng:\n\n1. Nhấp vào nút **Cài đặt API** ở góc trên bên phải\n2. Nhập API Key từ OpenAI\n3. Lưu cài đặt và quay lại\n\nTrong thời gian chờ, tôi có thể cung cấp một số lời khuyên cơ bản về ADHD.",
-        timestamp: new Date(),
-      }
-      setMessages((prev) => [...prev, errorMessage])
-      return
-    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -415,24 +459,45 @@ export function AIChat({ context, childId }: AIChatProps) {
           messages: [
             {
               role: "system",
-              content: `Bạn là Dr. AI, chuyên gia tư vấn ADHD. 
-              
-              DỮ LIỆU TRẺ - PHÂN TÍCH CỤ THỂ:
-              ${contextData.stats?.analysisDetail || JSON.stringify(contextData, null, 2)}
-              
-              YÊU CẦU TRẢ LỜI:
-              - PHẢI sử dụng SỐ LIỆU cụ thể từ dữ liệu trên
-              - Phân tích xu hướng (tăng/giảm/ổn định)
-              - Đưa ra 2-3 khuyến nghị CỤ THỂ với bước làm rõ ràng
-              - So sánh với mức chuẩn (nếu biết)
-              - Đề xuất hành động NGAY và KẾ HOẠCH 1-2 tuần tới
-              
-              Ví dụ TỐT: "Con đang có tỷ lệ tuân thủ 85%, cao hơn mức trung bình 75%. Để duy trì, hãy..."
-              Ví dụ XẤU: "Nên uống thuốc đều đặn" (quá chung chung)
-              
-              ${context ? `Context: ${context}` : ""}`,
+              content: `Bạn là Dr. AI - chuyên gia tư vấn ADHD dành cho PHỤ HUYNH.
+
+NHIỆM VỤ CHÍNH:
+1. Tư vấn y tế & bệnh lý: Giải thích về ADHD, các mức độ, triệu chứng, phương pháp điều trị (thuốc, trị liệu hành vi, can thiệp giáo dục)
+2. Phân tích tiến độ con: Đánh giá mức độ tập trung, tuân thủ thuốc, xu hướng cải thiện/suy giảm
+3. Tư vấn chiến lược: Đề xuất phương pháp nuôi dạy con ADHD, quản lý hành vi, tạo môi trường học tập
+4. Tạo lịch học: Giúp phụ huynh xây dựng thời khóa biểu phù hợp với con (cân bằng học/nghỉ, thời điểm uống thuốc, hoạt động thể chất)
+5. Hỗ trợ gia đình: Cách giao tiếp với con ADHD, xử lý tình huống khó, giảm stress cho gia đình
+
+DỮ LIỆU CON HIỆN TẠI:
+${contextData.stats?.analysisDetail || JSON.stringify(contextData, null, 2)}
+
+YÊU CẦU TRẢ LỜI:
+- Dùng số liệu cụ thể khi phân tích tiến độ
+- Đưa ra khuyến nghị có bước thực hiện rõ ràng
+- Phân biệt rõ: thông tin chung vs. khuyến nghị cụ thể cho con
+- Khi tư vấn thuốc: nhắc phụ huynh tham khảo bác sĩ chuyên khoa
+- Tông giọng: chuyên nghiệp nhưng thông cảm, hỗ trợ
+
+===== TÍNH NĂNG TẠO LỊCH HỌC =====
+Khi phụ huynh yêu cầu tạo lịch học, HOẶC yêu cầu chỉnh sửa/điều chỉnh lịch đã đề xuất, phản hồi PHẢI gồm ĐÚNG 2 phần:
+
+PHẦN 1 - Giải thích (bắt buộc): Mô tả ngắn về lịch học, lý do sắp xếp.
+
+PHẦN 2 - JSON TAG (BẮT BUỘC - KHÔNG ĐƯỢC BỎ QUA):
+Dòng CUỐI CÙNG của phản hồi PHẢI là dòng bắt đầu bằng [SCHEDULE: và kết thúc bằng }]
+Ví dụ:
+[SCHEDULE:{"activities":[{"subject":"Toán","start_time":"16:00","end_time":"17:00","notes":"Làm bài tập"},{"subject":"Tiếng Anh","start_time":"17:15","end_time":"18:00","notes":"Học từ vựng"},{"subject":"Văn","start_time":"18:10","end_time":"18:55","notes":"Ôn bài cũ"}]}]
+
+QUY TẮC JSON (vi phạm = phản hồi bị hỏng):
+- activities CHỈ chứa môn học thực sự: Toán, Văn, Tiếng Anh, Vật lý, Hóa học, Lịch sử, Địa lý, Sinh học, GDCD, Tin học, Âm nhạc, Mỹ thuật, Tự học
+- KHÔNG đưa vào activities: Nghỉ ngơi, Giải lao, Ăn uống, Thể dục, Sinh hoạt cá nhân
+- subject: tên ngắn gọn ("Toán" không phải "Ôn tập hoặc làm bài tập Toán")
+- start_time / end_time: định dạng HH:MM, 24h (ví dụ "16:00" không phải "4:00 PM")
+- Mỗi lần điều chỉnh lịch, PHẢI xuất lại [SCHEDULE:...] đầy đủ với lịch đã cập nhật
+
+${context ? `Ngữ cảnh: ${context}` : ""}`,
             },
-            ...messages.slice(-5).map((msg) => ({
+            ...messages.slice(-10).map((msg) => ({
               role: msg.role,
               content: msg.content,
             })),
@@ -458,14 +523,17 @@ export function AIChat({ context, childId }: AIChatProps) {
         throw new Error(data.error || 'No content in response')
       }
 
+      // Parse schedule proposal from response (pass user message for table fallback)
+      const { cleaned, proposal } = parseScheduleFromContent(data.content, currentInput)
       // Generate action cards based on user message
-      const actionCards = generateActionCards(currentInput, childData)
+      const actionCards = proposal ? [] : generateActionCards(currentInput, childData)
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: data.content,
+        content: cleaned,
         timestamp: new Date(),
+        scheduleProposal: proposal || undefined,
         actionCards: actionCards.length > 0 ? actionCards : undefined,
       }
 
@@ -486,6 +554,38 @@ export function AIChat({ context, childId }: AIChatProps) {
       setTimeout(() => {
         inputRef.current?.focus()
       }, 100)
+    }
+  }
+
+  const applySchedule = async (messageId: string, activities: ScheduleActivity[]) => {
+    if (!childId) return
+    setApplyingSchedule(messageId)
+    try {
+      const res = await fetch('/api/parent/create-schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ childId, activities }),
+      })
+      const result = await res.json()
+      if (res.ok) {
+        setMessages(prev => [...prev, {
+          id: Date.now().toString(),
+          role: 'assistant' as const,
+          content: `✅ **Đã tạo lịch học thành công!**\n\nLịch học với ${activities.length} môn đã được lưu cho con. Con có thể xem trong trang lịch học của mình.`,
+          timestamp: new Date(),
+        }])
+      } else {
+        throw new Error(result.error || 'Lỗi không xác định')
+      }
+    } catch (err) {
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        role: 'assistant' as const,
+        content: `❌ Không thể tạo lịch học: ${err instanceof Error ? err.message : 'Lỗi không xác định'}. Vui lòng thử lại.`,
+        timestamp: new Date(),
+      }])
+    } finally {
+      setApplyingSchedule(null)
     }
   }
 
@@ -524,28 +624,26 @@ export function AIChat({ context, childId }: AIChatProps) {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header with API Settings Link */}
-      <div className="border-b bg-gray-50 px-1 sm:px-3 py-1.5 sm:py-2 flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-1">
-          <Brain className="h-4 w-4 text-blue-600 flex-shrink-0" />
-          <span className="text-xs sm:text-sm font-medium text-gray-700 truncate">Dr. AI - Trợ lý ADHD</span>
-          {!apiConfigured && (
-            <Badge variant="destructive" className="text-xs px-1 py-0 h-5 flex-shrink-0">
-              Cần API
-            </Badge>
-          )}
-          {apiConfigured && (
-            <Badge variant="secondary" className="text-xs px-1 py-0 h-5 flex-shrink-0">
-              Sẵn sàng
-            </Badge>
-          )}
-        </div>
-        <Link href="/settings/api">
-          <Button variant="ghost" size="sm" className="text-xs px-2 py-1 h-7 flex-shrink-0">
-            <Settings className="h-3 w-3 sm:mr-1" />
-            <span className="hidden sm:inline">Cài đặt API</span>
-          </Button>
-        </Link>
+      {/* Header */}
+      <div className="border-b bg-gray-50 px-1 sm:px-3 py-1.5 sm:py-2 flex items-center gap-2 flex-shrink-0">
+        <Brain className="h-4 w-4 text-blue-600 flex-shrink-0" />
+        <span className="text-xs sm:text-sm font-medium text-gray-700 truncate">Dr. AI - Tư vấn ADHD cho Phụ huynh</span>
+        <Badge variant="secondary" className="text-xs px-1 py-0 h-5 flex-shrink-0 ml-auto">
+          Sẵn sàng
+        </Badge>
+        {childId && messages.length > 1 && (
+          <button
+            onClick={() => {
+              localStorage.removeItem(`adhd-chat-parent-${childId}`)
+              setMessages([])
+              loadChildData()
+            }}
+            className="text-xs text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
+            title="Xóa lịch sử chat"
+          >
+            Xóa lịch sử
+          </button>
+        )}
       </div>
 
       {/* Messages */}
@@ -604,30 +702,60 @@ export function AIChat({ context, childId }: AIChatProps) {
                 </div>
               )}
 
+              {/* Schedule Proposal */}
+              {message.scheduleProposal && message.role === "assistant" && (
+                <div className="ml-8 sm:ml-10 mt-2">
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 space-y-2">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Calendar className="h-4 w-4 text-blue-600" />
+                      <p className="text-sm font-semibold text-blue-800">Lịch học đề xuất</p>
+                      <span className="text-xs text-blue-500 ml-auto">{message.scheduleProposal!.length} môn</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {message.scheduleProposal.map((act, idx) => (
+                        <div key={idx} className="flex items-start gap-2 text-sm bg-white rounded-lg px-2 py-1.5 border border-blue-100">
+                          <span className="text-blue-500 font-mono text-xs w-11 flex-shrink-0 pt-0.5">{act.start_time}–{act.end_time}</span>
+                          <div className="flex-1 min-w-0">
+                            <span className="font-semibold text-gray-800">{act.subject}</span>
+                            {act.notes && <span className="text-gray-500 text-xs block truncate">{act.notes}</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => applySchedule(message.id, message.scheduleProposal!)}
+                      disabled={applyingSchedule === message.id}
+                      className="w-full mt-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-sm font-semibold py-2 rounded-lg transition-colors flex items-center justify-center gap-2"
+                    >
+                      {applyingSchedule === message.id
+                        ? <><Loader2 className="h-4 w-4 animate-spin" /> Đang tạo lịch...</>
+                        : <><Calendar className="h-4 w-4" /> Áp dụng lịch học này cho con</>
+                      }
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Action Cards */}
               {message.actionCards && message.role === "assistant" && (
                 <div className="ml-8 sm:ml-10 space-y-1 sm:space-y-2">
-                  <p className="text-xs text-gray-500 font-medium">Hành động gợi ý:</p>
+                  <p className="text-xs text-gray-500 font-medium">Chức năng liên quan:</p>
                   <div className="grid gap-1 sm:gap-2">
                     {message.actionCards.map((card, index) => (
-                      <Card
-                        key={index}
-                        className="cursor-pointer hover:shadow-md transition-shadow"
-                        onClick={() => handleActionCard(card)}
-                      >
-                        <CardContent className="p-2">
-                          <div className="flex items-center gap-2">
-                            <div className="p-1.5 bg-blue-50 rounded-lg flex-shrink-0">{getActionIcon(card.type)}</div>
-                            <div className="flex-1 min-w-0">
-                              <h4 className="text-sm font-medium truncate">{card.title}</h4>
-                              <p className="text-xs text-gray-600 truncate">{card.description}</p>
+                      <Link key={index} href={card.href}>
+                        <Card className="cursor-pointer hover:shadow-md hover:border-blue-300 transition-all">
+                          <CardContent className="p-2">
+                            <div className="flex items-center gap-2">
+                              <div className="p-1.5 bg-blue-50 rounded-lg flex-shrink-0">{getActionIcon(card.type)}</div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="text-sm font-medium truncate">{card.title}</h4>
+                                <p className="text-xs text-gray-600 truncate">{card.description}</p>
+                              </div>
+                              <ExternalLink className="w-3 h-3 text-blue-400 flex-shrink-0" />
                             </div>
-                            <Badge variant="outline" className="text-xs px-1 py-0 h-5 flex-shrink-0">
-                              {card.action}
-                            </Badge>
-                          </div>
-                        </CardContent>
-                      </Card>
+                          </CardContent>
+                        </Card>
+                      </Link>
                     ))}
                   </div>
                 </div>

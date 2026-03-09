@@ -1,6 +1,13 @@
+type OpenAIMessageContent =
+  | string
+  | Array<
+      | { type: "text"; text: string }
+      | { type: "image_url"; image_url: { url: string; detail?: "auto" | "low" | "high" } }
+    >
+
 interface OpenAIMessage {
   role: "system" | "user" | "assistant"
-  content: string
+  content: OpenAIMessageContent
 }
 
 interface OpenAIResponse {
@@ -61,38 +68,23 @@ LƯU Ý:
 
 export async function generateAIResponse(messages: OpenAIMessage[]): Promise<string> {
   try {
-    let apiKey = ""
-    let model = "gpt-4o"
-
-    if (typeof window !== "undefined") {
-      apiKey = localStorage.getItem("openai_api_key") || ""
-      model = localStorage.getItem("openai_model") || "gpt-4o"
-    }
-
-    // Fallback to environment variables if localStorage is empty
-    if (!apiKey) {
-      // Use NEXT_PUBLIC_ prefix for client-side access
-      apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY || ""
-    }
-    if (!model) {
-      model = process.env.OPENAI_MODEL || "gpt-4o"
-    }
+    // API key and model are server-side only; this function is called from /api/chat (server)
+    const apiKey = process.env.OPENAI_API_KEY || ""
+    const model = process.env.OPENAI_MODEL || "gpt-4o-mini"
     
-    console.log('🔑 OpenAI client - API key status:', !!apiKey, 'Model:', model)
-
     if (!apiKey) {
       throw new Error("OpenAI API key not configured")
     }
 
-    // Use enhanced system prompt if we have context data
-    const hasContextData = messages.some((msg) => msg.role === "system" && msg.content.includes("Thông tin về trẻ:"))
+    // Use the caller's system message if provided, otherwise fall back to defaults
+    const clientSystem = messages.find((msg) => msg.role === "system")
+    const hasContextData = typeof clientSystem?.content === "string" && clientSystem.content.includes("Thông tin về trẻ:")
+    const defaultPrompt = hasContextData ? ENHANCED_SYSTEM_PROMPT : FALLBACK_SYSTEM_PROMPT
+    const systemContent = clientSystem?.content || defaultPrompt
 
-    const systemPrompt = hasContextData ? ENHANCED_SYSTEM_PROMPT : FALLBACK_SYSTEM_PROMPT
-
-    // Ensure we have a system message at the beginning
     const processedMessages: OpenAIMessage[] = [
-      { role: "system", content: systemPrompt },
-      ...messages.filter((msg) => msg.role !== "system" || msg.content.includes("Thông tin về trẻ:")),
+      { role: "system", content: systemContent },
+      ...messages.filter((msg) => msg.role !== "system"),
     ]
 
     console.log('📡 Calling OpenAI API with', processedMessages.length, 'messages')
@@ -140,7 +132,8 @@ export async function generateAIResponse(messages: OpenAIMessage[]): Promise<str
 
 function getFallbackResponse(messages: OpenAIMessage[]): string {
   const lastUserMessage = messages.filter((msg) => msg.role === "user").pop()
-  const input = lastUserMessage?.content.toLowerCase() || ""
+  const rawContent = lastUserMessage?.content
+  const input = (typeof rawContent === "string" ? rawContent : "").toLowerCase()
 
   if (input.includes("thời gian biểu") || input.includes("lịch học") || input.includes("schedule")) {
     return `## 📅 Thời gian biểu học tập cho trẻ ADHD

@@ -1,105 +1,126 @@
 "use client"
 
 import type { FocusSession } from "@/lib/types"
-import { ChartTooltip } from "@/components/ui/chart"
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from "recharts"
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  ResponsiveContainer, Tooltip, Cell, ReferenceLine
+} from "recharts"
 
 interface SubjectPerformanceChartProps {
   sessions: FocusSession[]
 }
 
-export function SubjectPerformanceChart({ sessions }: SubjectPerformanceChartProps) {
-  // Use mock data for demo
-  const chartData = [
-    { subject: "Toán học", score: 82, sessions: 8, totalTime: 240 },
-    { subject: "Tiếng Anh", score: 79, sessions: 5, totalTime: 125 },
-    { subject: "Văn học", score: 77, sessions: 6, totalTime: 180 },
-    { subject: "Khoa học", score: 76, sessions: 4, totalTime: 145 },
-    { subject: "Lịch sử", score: 73, sessions: 3, totalTime: 80 },
-  ]
+const CHART_DATA = [
+  { subject: "Toán học", score: 82, sessions: 8, totalTime: 240, color: "#3b82f6" },
+  { subject: "Văn học", score: 77, sessions: 6, totalTime: 180, color: "#8b5cf6" },
+  { subject: "Tiếng Anh", score: 79, sessions: 5, totalTime: 125, color: "#06b6d4" },
+  { subject: "Khoa học", score: 76, sessions: 4, totalTime: 145, color: "#10b981" },
+  { subject: "Lịch sử", score: 73, sessions: 3, totalTime: 80, color: "#f59e0b" },
+]
 
-  const chartConfig = {
-    score: {
-      label: "Điểm trung bình",
-      color: "hsl(var(--primary))",
-    },
-  }
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null
+  const d = payload[0].payload
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-3 shadow-xl text-sm min-w-[160px]">
+      <p className="font-bold text-gray-800 mb-2">{label}</p>
+      <div className="space-y-1.5">
+        <div className="flex justify-between gap-4">
+          <span className="text-gray-500">Điểm TB</span>
+          <span className="font-bold" style={{ color: d.color }}>{d.score}%</span>
+        </div>
+        <div className="flex justify-between gap-4">
+          <span className="text-gray-500">Số buổi học</span>
+          <span className="font-medium text-gray-700">{d.sessions}</span>
+        </div>
+        <div className="flex justify-between gap-4">
+          <span className="text-gray-500">Tổng thời gian</span>
+          <span className="font-medium text-gray-700">{d.totalTime} phút</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function SubjectPerformanceChart({ sessions }: SubjectPerformanceChartProps) {
+  const overallAvg = Math.round(CHART_DATA.reduce((s, d) => s + d.score, 0) / CHART_DATA.length)
+  const best = CHART_DATA.reduce((a, b) => a.score > b.score ? a : b)
+  const totalSessions = CHART_DATA.reduce((s, d) => s + d.sessions, 0)
+  const totalTime = CHART_DATA.reduce((s, d) => s + d.totalTime, 0)
 
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-      <div className="mb-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-2">Hiệu suất theo môn học</h2>
-        <p className="text-gray-600 text-sm">Điểm tập trung trung bình cho từng môn học</p>
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      {/* Header */}
+      <div className="px-6 pt-5 pb-4 border-b border-gray-50">
+        <h2 className="text-lg font-bold text-gray-900">Hiệu suất theo môn học</h2>
+        <p className="text-sm text-gray-500 mt-0.5">Điểm tập trung trung bình và thời gian học theo từng môn</p>
+
+        {/* Stats row */}
+        <div className="grid grid-cols-4 gap-2 mt-4">
+          <div className="bg-blue-50 rounded-xl px-3 py-2.5 text-center">
+            <div className="text-xl font-black text-blue-700">{best.subject.split(' ')[0]}</div>
+            <div className="text-xs text-gray-500 mt-0.5">Môn tốt nhất</div>
+          </div>
+          <div className="bg-green-50 rounded-xl px-3 py-2.5 text-center">
+            <div className="text-xl font-black text-green-700">{best.score}%</div>
+            <div className="text-xs text-gray-500 mt-0.5">Điểm cao nhất</div>
+          </div>
+          <div className="bg-purple-50 rounded-xl px-3 py-2.5 text-center">
+            <div className="text-xl font-black text-purple-700">{totalSessions}</div>
+            <div className="text-xs text-gray-500 mt-0.5">Tổng buổi học</div>
+          </div>
+          <div className="bg-orange-50 rounded-xl px-3 py-2.5 text-center">
+            <div className="text-xl font-black text-orange-600">{overallAvg}%</div>
+            <div className="text-xs text-gray-500 mt-0.5">Điểm TB chung</div>
+          </div>
+        </div>
       </div>
 
-      <div className="h-64">
+      {/* Chart */}
+      <div className="px-3 pt-4 pb-3 h-[260px]">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+          <BarChart data={CHART_DATA} margin={{ top: 8, right: 16, left: 0, bottom: 8 }} barSize={36}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
             <XAxis
               dataKey="subject"
               tickLine={false}
               axisLine={false}
-              className="text-xs"
-              angle={-45}
-              textAnchor="end"
-              height={60}
+              tick={{ fontSize: 11, fill: '#64748b' }}
             />
-            <YAxis domain={[0, 100]} tickLine={false} axisLine={false} className="text-xs" />
-            <ChartTooltip
-              content={({ active, payload, label }) => {
-                if (active && payload && payload.length) {
-                  const data = payload[0].payload
-                  return (
-                    <div className="bg-white border rounded-lg p-4 shadow-lg">
-                      <p className="font-semibold text-gray-900 mb-2">{`Môn: ${label}`}</p>
-                      <div className="space-y-1">
-                        <p className="text-blue-600">
-                          <span className="font-medium">Điểm TB:</span> {data.score}%
-                        </p>
-                        <p className="text-green-600">
-                          <span className="font-medium">Số buổi:</span> {data.sessions}
-                        </p>
-                        <p className="text-purple-600">
-                          <span className="font-medium">Tổng thời gian:</span> {data.totalTime} phút
-                        </p>
-                      </div>
-                    </div>
-                  )
-                }
-                return null
-              }}
+            <YAxis
+              domain={[60, 100]}
+              tickLine={false}
+              axisLine={false}
+              tick={{ fontSize: 11, fill: '#94a3b8' }}
+              tickFormatter={v => `${v}%`}
+              width={38}
             />
-            <Bar dataKey="score" fill="#3b82f6" radius={[4, 4, 0, 0]} className="hover:opacity-80 transition-opacity" />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc' }} />
+            <ReferenceLine
+              y={overallAvg}
+              stroke="#94a3b8"
+              strokeDasharray="4 3"
+              strokeWidth={1}
+              label={{ value: `TB ${overallAvg}%`, position: 'insideTopRight', fontSize: 10, fill: '#94a3b8' }}
+            />
+            <Bar dataKey="score" radius={[6, 6, 0, 0]}>
+              {CHART_DATA.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={entry.color} />
+              ))}
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
       </div>
 
-      {chartData.length > 0 && (
-        <div className="mt-6 pt-4 border-t border-gray-100">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-            <div>
-              <div className="text-2xl font-bold text-blue-600">{chartData[0]?.subject}</div>
-              <div className="text-sm text-gray-500">Môn học tốt nhất</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-green-600">{chartData[0]?.score}%</div>
-              <div className="text-sm text-gray-500">Điểm cao nhất</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-purple-600">
-                {chartData.reduce((sum, item) => sum + item.sessions, 0)}
-              </div>
-              <div className="text-sm text-gray-500">Tổng buổi học</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-orange-600">
-                {Math.round(chartData.reduce((sum, item) => sum + item.score, 0) / chartData.length)}%
-              </div>
-              <div className="text-sm text-gray-500">Điểm TB chung</div>
-            </div>
+      {/* Color legend */}
+      <div className="flex flex-wrap justify-center gap-x-4 gap-y-1.5 px-4 pb-4 text-xs text-gray-600">
+        {CHART_DATA.map(d => (
+          <div key={d.subject} className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: d.color }} />
+            <span>{d.subject} ({d.score}%)</span>
           </div>
-        </div>
-      )}
+        ))}
+      </div>
     </div>
   )
 }

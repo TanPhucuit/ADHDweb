@@ -1,8 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useAuth } from "@/lib/auth"
-import { dataStore } from "@/lib/data-store"
 import type { Child } from "@/lib/types"
 import { ChildHeader } from "@/components/child/child-header"
 import { GoBackButton } from "@/components/ui/go-back-button"
@@ -15,10 +13,10 @@ import { Switch } from "@/components/ui/switch"
 import { Palette, Volume2, Eye } from "lucide-react"
 
 export default function ChildSettingsPage() {
-  const { user, loading } = useAuth()
   const [child, setChild] = useState<Child | null>(null)
+  const [loading, setLoading] = useState(true)
   const [settings, setSettings] = useState({
-    backgroundColor: "gradient-purple-pink",
+    backgroundColor: "solid-sky",
     fontSize: 14, // Reduced default font size
     soundEnabled: true,
     notificationsEnabled: true,
@@ -27,13 +25,37 @@ export default function ChildSettingsPage() {
   })
 
   useEffect(() => {
-    if (user) {
-      const childData = dataStore.getChildById("child-1")
-      setChild(childData)
+    const stored = localStorage.getItem("adhd-dashboard-user")
+    if (stored) {
+      try {
+        const u = JSON.parse(stored)
+        if (u.id && u.role === "child") {
+          setChild({
+            id: u.id,
+            parentId: u.parentId || "22",
+            name: u.name,
+            age: u.age || 11,
+            grade: u.class || "Lớp 5",
+            avatar: "/child-avatar.png",
+            deviceId: `device-${u.id}`,
+            settings: {
+              focusGoalMinutes: 90,
+              breakReminderInterval: 25,
+              lowFocusThreshold: 35,
+              subjects: ["Toán học", "Tiếng Việt", "Tiếng Anh", "Khoa học"],
+              schoolHours: { start: "07:45", end: "16:15" },
+            },
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          } as Child)
+        }
+      } catch {}
     }
-  }, [user])
+    setLoading(false)
+  }, [])
 
   const backgroundOptions = [
+    { id: "solid-sky", name: "🩵 Xanh trời", class: "bg-sky-400", solid: true },
     { id: "gradient-purple-pink", name: "💜 Tím hồng", class: "from-purple-400 via-pink-400 to-orange-400" },
     { id: "gradient-blue-green", name: "💙 Xanh lam", class: "from-blue-400 via-cyan-400 to-green-400" },
     { id: "gradient-orange-red", name: "🧡 Cam đỏ", class: "from-orange-400 via-red-400 to-pink-400" },
@@ -43,7 +65,7 @@ export default function ChildSettingsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-400 to-pink-400">
+      <div className="min-h-screen flex items-center justify-center bg-sky-400">
         <LoadingSpinner />
       </div>
     )
@@ -51,7 +73,7 @@ export default function ChildSettingsPage() {
 
   if (!child) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-400 to-pink-400">
+      <div className="min-h-screen flex items-center justify-center bg-sky-400">
         <div className="text-center text-white px-4">
           <div className="text-4xl sm:text-6xl mb-4">🔒</div>
           <h2 className="text-lg sm:text-2xl font-heading font-bold mb-2 drop-shadow-lg">Chưa có quyền truy cập</h2>
@@ -63,7 +85,7 @@ export default function ChildSettingsPage() {
 
   return (
     <div
-      className={`min-h-screen bg-gradient-to-br ${backgroundOptions.find((bg) => bg.id === settings.backgroundColor)?.class || "from-purple-400 via-pink-400 to-orange-400"}`}
+      className={`min-h-screen ${(() => { const bg = backgroundOptions.find((b) => b.id === settings.backgroundColor); return bg?.solid ? bg.class : `bg-gradient-to-br ${bg?.class || "from-sky-400 to-sky-500"}`; })()}`}
     >
       <ChildHeader child={child} />
 

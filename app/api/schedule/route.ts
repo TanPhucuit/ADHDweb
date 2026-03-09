@@ -2,55 +2,47 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
 import { getVietnamTime } from '@/lib/vietnam-time'
 
-// GET - Get all schedule activities from Supabase database ONLY
+// GET - Get schedule activities for today only (or specific date via ?date=YYYY-MM-DD)
 export async function GET(request: NextRequest) {
   const supabase = createServerSupabaseClient()
   try {
     const { searchParams } = new URL(request.url)
     const childId = searchParams.get('childId')
+    const dateParam = searchParams.get('date') // YYYY-MM-DD, defaults to today
 
-    console.log('🔍 Fetching schedule activities from database for child:', childId)
+    // Calculate today's date range (Vietnam time)
+    const targetDate = dateParam ? new Date(dateParam) : new Date()
+    const startOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate()).toISOString()
+    const endOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate() + 1).toISOString()
+
+    console.log('🔍 Fetching TODAY schedule for child:', childId, 'date:', startOfDay.slice(0, 10))
 
     if (childId) {
-      // Try direct query first (for simplified sample data)
-      let { data, error } = await supabase
+      // Find schedules for this child, then get today's activities
+      const { data: schedules, error: scheduleError } = await supabase
+        .from('schedule')
+        .select('scheduleid')
+        .eq('childid', parseInt(childId))
+
+      if (scheduleError) {
+        console.error('❌ Schedule lookup error:', scheduleError)
+        return NextResponse.json({ error: 'Schedule lookup error: ' + scheduleError.message }, { status: 500 })
+      }
+
+      if (!schedules || schedules.length === 0) {
+        console.log('⚠️ No schedules found for child:', childId)
+        return NextResponse.json({ data: [] })
+      }
+
+      const scheduleIds = schedules.map(s => s.scheduleid)
+
+      const { data, error } = await supabase
         .from('schedule_activity')
         .select('*')
-        .eq('childId', parseInt(childId))
-        .order('startTime', { ascending: true })
-
-      if (error || !data || data.length === 0) {
-        console.log('⚠️ Direct query failed or no results, trying schedule lookup approach')
-        
-        // Fallback to original approach with schedule lookup
-        const { data: schedules, error: scheduleError } = await supabase
-          .from('schedule')
-          .select('scheduleid')
-          .eq('childid', childId)
-
-        if (scheduleError) {
-          console.error('❌ Schedule lookup error:', scheduleError)
-          return NextResponse.json({ error: 'Schedule lookup error: ' + scheduleError.message }, { status: 500 })
-        }
-
-        if (!schedules || schedules.length === 0) {
-          console.log('⚠️ No schedules found for child:', childId)
-          return NextResponse.json({ data: [] })
-        }
-
-        const scheduleIds = schedules.map(s => s.scheduleid)
-        console.log('📋 Found schedule IDs for child:', scheduleIds)
-
-        // Get activities for these schedules  
-        const result = await supabase
-          .from('schedule_activity')
-          .select('*')
-          .in('scheduleid', scheduleIds)
-          .order('start_time_stamp', { ascending: true })
-        
-        data = result.data
-        error = result.error
-      }
+        .in('scheduleid', scheduleIds)
+        .gte('start_time_stamp', startOfDay)
+        .lt('start_time_stamp', endOfDay)
+        .order('start_time_stamp', { ascending: true })
 
       if (error) {
         console.error('❌ Database error:', error)

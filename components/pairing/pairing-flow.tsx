@@ -28,8 +28,15 @@ export function PairingFlow() {
   }
 
   const handleComplete = () => {
-    // Redirect to dashboard
-    window.location.href = "/dashboard"
+    try {
+      const stored = localStorage.getItem("adhd-dashboard-user")
+      if (stored) {
+        const u = JSON.parse(stored)
+        if (u.role === "parent") { window.location.href = "/parent"; return }
+        if (u.role === "child") { window.location.href = "/child"; return }
+      }
+    } catch {}
+    window.location.href = "/"
   }
 
   if (step === "success") {

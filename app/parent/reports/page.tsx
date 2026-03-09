@@ -50,7 +50,6 @@ import { SubjectPerformanceChart } from "@/components/reports/subject-performanc
 import { TimeDistributionChart } from "@/components/reports/time-distribution-chart"
 import { HistoricalDataTable } from "@/components/reports/historical-data-table"
 import { LearningPerformanceChart } from "@/components/reports/learning-performance-chart"
-import { DetailedDataTables } from "@/components/reports/detailed-data-tables"
 import { GoBackButton } from "@/components/ui/go-back-button"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
@@ -236,7 +235,7 @@ export default function ReportsPage() {
       <main className="container mx-auto px-4 py-6 space-y-6">
         <GoBackButton />
 
-        <ReportsHeader child={child} />
+        <ReportsHeader child={child} data={detailedData} dateRange={dateRange} />
 
         <DateRangeSelector selectedRange={dateRange} onRangeChange={setDateRange} />
 
@@ -250,12 +249,6 @@ export default function ReportsPage() {
 
         <HistoricalDataTable parentId={user?.id ? String(user.id) : ''} />
 
-        {/* Hidden component for detailed PDF export */}
-        <DetailedDataTables 
-          childId={child?.id ? String(child.id) : ''}
-          childName={child.name}
-          data={detailedData}
-        />
       </main>
     </div>
   )

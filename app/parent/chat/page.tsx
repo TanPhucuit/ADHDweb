@@ -31,7 +31,7 @@ export default function ParentChatPage() {
           const response = await fetch(`/api/parent/children?parentId=${userData.id}`)
           if (response.ok) {
             const data = await response.json()
-            const childrenData = data.children || []
+            const childrenData = data.data || data.children || []
             setChildren(childrenData)
             if (childrenData.length > 0) {
               setSelectedChild(childrenData[0])
@@ -123,16 +123,16 @@ export default function ParentChatPage() {
                   <h4 className="text-sm font-medium">Gợi ý câu hỏi:</h4>
                   <div className="space-y-1">
                     <Button variant="ghost" size="sm" className="w-full justify-start text-xs">
-                      Làm thế nào để cải thiện sự tập trung?
+                      Phân tích tiến độ cải thiện của con
                     </Button>
                     <Button variant="ghost" size="sm" className="w-full justify-start text-xs">
-                      Chiến lược quản lý hành vi
+                      Các phương pháp điều trị ADHD hiệu quả
                     </Button>
                     <Button variant="ghost" size="sm" className="w-full justify-start text-xs">
-                      Lập kế hoạch học tập hiệu quả
+                      Tạo lịch học phù hợp cho con
                     </Button>
                     <Button variant="ghost" size="sm" className="w-full justify-start text-xs">
-                      Tạo thời khóa biểu phù hợp
+                      Con mất tập trung, phải làm sao?
                     </Button>
                   </div>
                 </div>

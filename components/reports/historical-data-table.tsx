@@ -74,13 +74,13 @@ export function HistoricalDataTable({ parentId }: HistoricalDataTableProps) {
     return 'focused'
   }
 
-  const historicalData: HistoricalData[] = actions.map((action) => {
+  const historicalData: HistoricalData[] = actions.map((action, index) => {
     const timestamp = new Date(action.timestamp)
     const date = timestamp.toISOString().split('T')[0]
     const time = timestamp.toTimeString().substring(0, 5)
 
     return {
-      id: action.id ? String(action.id) : `action-${Date.now()}`,
+      id: action.id ? String(action.id) : `action-${index}`,
       date,
       time,
       actionLabel: action.action_label,

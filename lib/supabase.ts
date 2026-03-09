@@ -13,7 +13,8 @@ export function createServerSupabaseClient() {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   
-  const key = serviceRoleKey || anonKey
+  // Only use service role key if it looks like a real JWT (starts with 'eyJ')
+  const key = (serviceRoleKey && serviceRoleKey.startsWith('eyJ')) ? serviceRoleKey : anonKey
 
   if (!url) {
     console.warn('⚠️ NEXT_PUBLIC_SUPABASE_URL is not set, using fallback')

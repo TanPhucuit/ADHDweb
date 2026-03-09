@@ -12,8 +12,10 @@ import { BreakTimer } from "@/components/child/break-timer"
 import { InstantNotificationPopup } from "@/components/child/instant-notification-popup"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Star, Trophy, Gift, TimerIcon, AwardIcon, MusicIcon, BrainIcon } from "lucide-react"
+import { Star, Trophy, Gift, TimerIcon, AwardIcon, MusicIcon, BrainIcon, BookOpen, X } from "lucide-react"
 import Link from "next/link"
+import { setActiveSession, clearActiveSession, getActiveSession } from "@/lib/study-session-store"
+import { isRewardApproved, isRewardDenied, decodeRewardAction } from "@/lib/reward-catalog"
 
 // Real auth hook that validates API authentication data
 function useAuth() {
@@ -70,6 +72,14 @@ export default function ChildDashboard() {
   
   // Instant notifications state
   const [instantNotifications, setInstantNotifications] = useState<any[]>([])
+  // Session restore popup
+  const [showRestoreToast, setShowRestoreToast] = useState(false)
+  const [restoredSubject, setRestoredSubject] = useState("")
+  // Break request: waiting for parent approval
+  const [breakPending, setBreakPending] = useState(false)
+  const [breakDenied, setBreakDenied] = useState(false)
+  // Reward notification toast
+  const [rewardToast, setRewardToast] = useState<{ approved: boolean; title: string } | null>(null)
 
   // Load data from API
   const loadData = useCallback(async (childId: string) => {
@@ -123,6 +133,41 @@ export default function ChildDashboard() {
       
       console.log('📚 Setting schedule activities from database:', realActivities)
       setScheduleActivities(realActivities)
+
+      // Restore active session if user navigated away and came back
+      const savedSession = getActiveSession()
+      if (savedSession) {
+        const activity = realActivities.find((a: any) => a.id === savedSession.activityId)
+        if (activity && activity.status !== 'completed') {
+          console.log('🔄 Restoring active session for:', savedSession.subject)
+          setSelectedActivity(activity)
+          // Adjust startTime so (now - startTime) == accumulatedSeconds only
+          // This prevents the timer from counting time spent away from the page
+          const accSecs = savedSession.accumulatedSeconds || 0
+          const adjustedStartTime = new Date(Date.now() - accSecs * 1000)
+          setCurrentSession({
+            id: `session-${activity.id}`,
+            userId: activity.childId,
+            subject: savedSession.subject,
+            activityType: 'schedule',
+            startTime: adjustedStartTime,
+            endTime: null,
+            plannedDuration: savedSession.durationMinutes,
+            status: 'active',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          })
+          // Update session store with corrected startTime
+          setActiveSession({ ...savedSession, startTime: adjustedStartTime.getTime() })
+          // Show popup to remind child they're still studying
+          setRestoredSubject(savedSession.subject)
+          setShowRestoreToast(true)
+          setTimeout(() => setShowRestoreToast(false), 5000)
+        } else if (!activity || activity.status === 'completed') {
+          // Activity no longer valid, clear session
+          clearActiveSession()
+        }
+      }
       
       setMedicineNotifications(medications.map((med: any) => ({
         ...med,
@@ -255,6 +300,25 @@ export default function ChildDashboard() {
     }
   }, [child])
 
+  const startBreakAfterApproval = useCallback(async () => {
+    setBreakPending(false)
+    setIsOnBreak(true)
+    setBreakTimeLeft(5 * 60)
+
+    if (child) {
+      try {
+        await notificationService.notifyBreakTaken(child.parentId, child.id, child.name, 5)
+      } catch (error) {
+        console.error('❌ Failed to send break notification:', error)
+      }
+    }
+
+    setTimeout(() => {
+      setIsOnBreak(false)
+      setBreakTimeLeft(0)
+    }, 5 * 60 * 1000)
+  }, [child])
+
   // Subscribe to instant notifications from parent
   useEffect(() => {
     if (!child?.id) return
@@ -265,10 +329,39 @@ export default function ChildDashboard() {
       child.id,
       (notification) => {
         console.log('📨 Received instant notification:', notification)
-        
-        // Add notification to stack
+
+        // Handle reward approval/denial
+        if (isRewardApproved(notification.actionType ?? '')) {
+          const decoded = decodeRewardAction(notification.actionType ?? '')
+          setRewardToast({ approved: true, title: decoded?.rewardTitle ?? 'phần thưởng' })
+          setTimeout(() => setRewardToast(null), 5000)
+          reloadRewardPoints()
+          return
+        }
+        if (isRewardDenied(notification.actionType ?? '')) {
+          const decoded = decodeRewardAction(notification.actionType ?? '')
+          setRewardToast({ approved: false, title: decoded?.rewardTitle ?? 'phần thưởng' })
+          setTimeout(() => setRewardToast(null), 4000)
+          return
+        }
+
+        // Handle break approval/denial (break_approved = from popup, nghi-giai-lao = from quick actions)
+        if (notification.actionType === 'break_approved' || notification.actionType === 'nghi-giai-lao') {
+          console.log('✅ Break approved by parent')
+          startBreakAfterApproval()
+          return
+        }
+        if (notification.actionType === 'break_denied') {
+          console.log('❌ Break denied by parent')
+          setBreakPending(false)
+          setBreakDenied(true)
+          setTimeout(() => setBreakDenied(false), 4000)
+          return
+        }
+
+        // Add other notifications to stack
         setInstantNotifications(prev => [...prev, notification])
-        
+
         // Play notification sound (optional)
         try {
           const audio = new Audio('/notification.mp3')
@@ -283,7 +376,7 @@ export default function ChildDashboard() {
       console.log('🔕 Cleaning up instant notification subscription')
       unsubscribe()
     }
-  }, [child?.id])
+  }, [child?.id, startBreakAfterApproval])
 
   // Show reward animation
   const showRewardGain = useCallback((points: number) => {
@@ -424,7 +517,16 @@ export default function ChildDashboard() {
       console.warn('⛔ BLOCKED: Cannot start completed activity:', activity.subject || activity.title)
       return
     }
-    
+
+    // Calculate planned duration from startTime/endTime (e.g. "07:00" - "07:45" = 45 min)
+    let durationMinutes = 25
+    try {
+      const [sh, sm] = activity.startTime.split(":").map(Number)
+      const [eh, em] = activity.endTime.split(":").map(Number)
+      const diff = (eh * 60 + em) - (sh * 60 + sm)
+      if (diff > 0) durationMinutes = diff
+    } catch {}
+
     console.log("✅ Starting schedule activity:", activity)
     setSelectedActivity(activity)
     setCurrentSession({
@@ -434,10 +536,20 @@ export default function ChildDashboard() {
       activityType: "schedule",
       startTime: new Date(),
       endTime: null,
-      plannedDuration: 25,
+      plannedDuration: durationMinutes,
       status: "active",
       createdAt: new Date(),
       updatedAt: new Date()
+    })
+
+    // Persist session so other pages (timer, music, AI) can sync
+    setActiveSession({
+      activityId: activity.id,
+      subject: activity.subject || activity.title,
+      durationMinutes,
+      startTime: Date.now(),
+      accumulatedSeconds: 0,
+      notes: activity.notes,
     })
   }, [])
 
@@ -464,9 +576,10 @@ export default function ChildDashboard() {
       console.log("Completing activity:", selectedActivity.id)
       handleActivityCompleteAPI(selectedActivity.id)
     }
-    
+
     setSelectedActivity(null)
     setCurrentSession(null)
+    clearActiveSession()
   }, [selectedActivity, handleActivityCompleteAPI])
 
   const handleMedicineTaken = useCallback((medicineId: string) => {
@@ -475,39 +588,20 @@ export default function ChildDashboard() {
   }, [handleMedicineTakenAPI])
 
   const handleBreakRequest = useCallback(async () => {
-    // Lấy timestamp hiện tại của hệ thống
-    const currentTimestamp = new Date()
-    console.log("🕐 Break requested at:", currentTimestamp.toISOString())
-    
-    setIsOnBreak(true)
-    setBreakTimeLeft(5 * 60) // 5 minutes break
-    
-    // Send break notification to parent with duration
-    if (child) {
-      try {
-        await notificationService.notifyBreakTaken(
-          child.parentId,
-          child.id,
-          child.name,
-          5 // 5 minutes
-        )
-        console.log('📢 Break notification sent to parent:', {
-          child: child.name,
-          duration: '5 phút',
-          timestamp: currentTimestamp.toISOString(),
-          time: currentTimestamp.toLocaleTimeString('vi-VN')
-        })
-      } catch (error) {
-        console.error('❌ Failed to send break notification:', error)
-      }
+    if (!child) return
+    setBreakPending(true)
+    setBreakDenied(false)
+    console.log('⏳ Break requested — waiting for parent approval')
+
+    try {
+      await fetch('/api/break-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ childId: child.id, parentId: child.parentId }),
+      })
+    } catch (error) {
+      console.error('❌ Failed to send break request:', error)
     }
-    
-    // Auto end break after time
-    setTimeout(() => {
-      setIsOnBreak(false)
-      setBreakTimeLeft(0)
-      console.log('✅ Break time ended automatically at:', new Date().toISOString())
-    }, 5 * 60 * 1000)
   }, [child])
 
   const childFeatures = [
@@ -517,6 +611,14 @@ export default function ChildDashboard() {
       icon: TimerIcon,
       color: "bg-green-500",
       emoji: "⏰",
+    },
+    {
+      href: "/child/medication",
+      label: "Uống thuốc",
+      icon: null,
+      color: "bg-pink-500",
+      emoji: "💊",
+      badge: medicineNotifications.filter((m: any) => m.status === "pending").length || undefined,
     },
     {
       href: "/child/rewards",
@@ -543,7 +645,7 @@ export default function ChildDashboard() {
 
   if (loading || authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-400 to-pink-400">
+      <div className="min-h-screen flex items-center justify-center bg-sky-400">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
       </div>
     )
@@ -551,7 +653,7 @@ export default function ChildDashboard() {
 
   if (!user || user.role !== "child") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-400 to-pink-400 px-4">
+      <div className="min-h-screen flex items-center justify-center bg-sky-400 px-4">
         <div className="text-center text-white">
           <div className="text-4xl mb-4">🚫</div>
           <h2 className="text-xl font-bold mb-2">Chưa có quyền truy cập</h2>
@@ -564,7 +666,7 @@ export default function ChildDashboard() {
   // Show loading while child data is being prepared
   if (!child) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-400 to-pink-400">
+      <div className="min-h-screen flex items-center justify-center bg-sky-400">
         <div className="text-center text-white">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
           <p>Đang tải dữ liệu trẻ em...</p>
@@ -574,8 +676,44 @@ export default function ChildDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-400 to-orange-400 relative">
+    <div className="min-h-screen bg-sky-400 relative">
       <ChildHeader child={child} onLogout={logout} />
+
+      {/* Session restore toast */}
+      {showRestoreToast && (
+        <div className="fixed top-16 left-4 right-4 z-50 animate-in slide-in-from-top duration-300">
+          <div className="bg-orange-500 text-white rounded-2xl px-4 py-3 shadow-2xl flex items-center gap-3">
+            <BookOpen className="w-6 h-6 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-sm">Bạn vẫn đang học!</p>
+              <p className="text-xs opacity-90 truncate">Tiếp tục môn <b>{restoredSubject}</b> nào 💪</p>
+            </div>
+            <button onClick={() => setShowRestoreToast(false)} className="flex-shrink-0 text-white/70 hover:text-white">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Reward approval/denial toast */}
+      {rewardToast && (
+        <div className="fixed top-16 left-4 right-4 z-50 animate-in slide-in-from-top duration-300">
+          <div className={`rounded-2xl px-4 py-3 shadow-2xl flex items-center gap-3 ${
+            rewardToast.approved ? "bg-green-500" : "bg-red-500"
+          } text-white`}>
+            <span className="text-2xl flex-shrink-0">{rewardToast.approved ? "🎉" : "😔"}</span>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-sm">
+                {rewardToast.approved ? "Ba mẹ đã duyệt phần thưởng!" : "Ba mẹ chưa duyệt lần này"}
+              </p>
+              <p className="text-xs opacity-90 truncate">{rewardToast.title}</p>
+            </div>
+            <button onClick={() => setRewardToast(null)} className="flex-shrink-0 text-white/70 hover:text-white">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Reward Animation */}
       {showRewardAnimation && (
@@ -614,12 +752,15 @@ export default function ChildDashboard() {
         ) : (
           <>
             {/* Focus Monster - Main character */}
-            <FocusMonster 
-              child={child} 
-              currentSession={currentSession} 
+            <FocusMonster
+              child={child}
+              currentSession={currentSession}
               currentActivity={selectedActivity}
-              onBreakRequest={handleBreakRequest} 
-              onActivityComplete={handleActivityComplete} 
+              onBreakRequest={handleBreakRequest}
+              onActivityComplete={handleActivityComplete}
+              breakPending={breakPending}
+              breakDenied={breakDenied}
+              onCancelBreakRequest={() => setBreakPending(false)}
             />
 
             {/* Activity Selector */}
@@ -673,9 +814,22 @@ export default function ChildDashboard() {
                 <h2 className="text-base sm:text-xl font-bold text-center mb-3 sm:mb-6 text-gray-800">
                   🎯 Công cụ học tập của {child?.name}
                 </h2>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
+                {currentSession && (
+                  <div className="mb-3 flex items-center gap-2 bg-orange-50 border border-orange-200 rounded-xl px-3 py-2">
+                    <BookOpen className="w-4 h-4 text-orange-500 flex-shrink-0" />
+                    <p className="text-xs text-orange-700 font-medium">
+                      Đang học: <b>{currentSession.subject}</b> — hoàn thành đúng giờ nhé!
+                    </p>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
                   {childFeatures.map((feature) => (
-                    <Link key={feature.href} href={feature.href}>
+                    <Link key={feature.href} href={feature.href} className="relative">
+                      {(feature as any).badge > 0 && (
+                        <span className="absolute -top-1.5 -right-1.5 z-10 min-w-[20px] h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center px-1">
+                          {(feature as any).badge}
+                        </span>
+                      )}
                       <Button
                         className="h-20 sm:h-24 w-full flex flex-col gap-1 sm:gap-2 bg-white hover:bg-gray-50 border-2 border-gray-200 hover:border-gray-300 transition-all duration-200 transform hover:scale-105 active:scale-95"
                       >

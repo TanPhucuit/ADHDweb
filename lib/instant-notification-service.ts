@@ -12,11 +12,18 @@ export interface InstantNotification {
 }
 
 class InstantNotificationService {
-  private supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-  )
+  private supabase: ReturnType<typeof createClient> | null = null
   private listeners = new Map<string, ((notification: InstantNotification) => void)[]>()
+
+  constructor() {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    if (url && key) {
+      this.supabase = createClient(url, key)
+    } else {
+      console.warn('⚠️ Supabase not configured — InstantNotificationService running in demo mode')
+    }
+  }
 
   /**
    * Subscribe to instant notifications for a specific child
@@ -34,6 +41,19 @@ class InstantNotificationService {
     }
     this.listeners.get(childId)!.push(callback)
 
+    // Skip Supabase subscription in demo mode
+    if (!this.supabase) {
+      console.log('⚠️ Demo mode: skipping Supabase notification subscription')
+      return () => {
+        const callbacks = this.listeners.get(childId)
+        if (callbacks) {
+          const index = callbacks.indexOf(callback)
+          if (index > -1) callbacks.splice(index, 1)
+          if (callbacks.length === 0) this.listeners.delete(childId)
+        }
+      }
+    }
+
     // Subscribe to Supabase Realtime channel for this child
     const channel = this.supabase
       .channel(`child-notifications-${childId}`)
@@ -47,7 +67,7 @@ class InstantNotificationService {
         },
         (payload) => {
           console.log('📨 Received instant notification from Supabase:', payload)
-          
+
           const action = payload.new as any
           const notification: InstantNotification = {
             id: action.actionid?.toString() || Date.now().toString(),
@@ -77,7 +97,7 @@ class InstantNotificationService {
     // Return unsubscribe function
     return () => {
       console.log('🔕 Unsubscribing from instant notifications for child:', childId)
-      
+
       // Remove callback from listeners
       const callbacks = this.listeners.get(childId)
       if (callbacks) {
@@ -107,12 +127,22 @@ class InstantNotificationService {
     try {
       console.log('📤 Sending instant notification to child:', childId, 'Action:', actionType)
 
+      if (!this.supabase) {
+        console.log('⚠️ Demo mode: notification send skipped')
+        return true
+      }
+
+      // Map to a valid action_label value (CHECK constraint: these 4 values only)
+      const VALID_LABELS = ['nhac-tap-trung', 'khen-ngoi', 'dong-vien', 'nghi-giai-lao']
+      const action_label = VALID_LABELS.includes(actionType) ? actionType : 'dong-vien'
+
       // Insert into action table will trigger Supabase Realtime
       const { data, error } = await this.supabase
         .from('action')
         .insert({
           childid: parseInt(childId),
           actiontype: actionType,
+          action_label,
           timestamp: getVietnamTime()
         })
         .select()

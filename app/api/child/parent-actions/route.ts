@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/client'
+import { createServerSupabaseClient } from '@/lib/supabase'
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
 
     console.log('📋 Fetching parent actions for child:', childId)
 
-    const supabase = createClient()
+    const supabase = createServerSupabaseClient()
 
     // Lấy parentId từ childId
     const { data: child, error: childError } = await supabase

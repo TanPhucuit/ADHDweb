@@ -6,12 +6,53 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUz
 
 const supabase = createClient(supabaseUrl, supabaseKey)
 
+// ===== DEMO ACCOUNTS (Local, không cần Supabase) =====
+const DEMO_ACCOUNTS: Record<string, { password: string; user: Record<string, any> }> = {
+  'demo-child@adhd.local': {
+    password: 'demo123',
+    user: {
+      id: 'demo-child-001',
+      email: 'demo-child@adhd.local',
+      name: 'Bé Demo',
+      role: 'child',
+      parentId: 'demo-parent-001',
+      class: 'Lớp 5A',
+      age: 10,
+    },
+  },
+  'demo-parent@adhd.local': {
+    password: 'demo123',
+    user: {
+      id: 'demo-parent-001',
+      email: 'demo-parent@adhd.local',
+      name: 'Phụ huynh Demo',
+      role: 'parent',
+      phone: '0123456789',
+    },
+  },
+}
+
+function getDemoUser(email: string, password: string, role: string) {
+  const account = DEMO_ACCOUNTS[email]
+  if (account && account.password === password && account.user.role === role) {
+    return account.user
+  }
+  return null
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { email, password, role } = await request.json()
-    
+
     console.log('🔐 Login attempt for email:', email, 'role:', role)
-    
+
+    // Check demo accounts first (bypass Supabase)
+    const demoUser = getDemoUser(email, password, role)
+    if (demoUser) {
+      console.log('✅ Demo login successful:', demoUser)
+      return NextResponse.json({ success: true, user: demoUser })
+    }
+
     if (role === 'child') {
       // Search only in child table
       console.log('🔍 Searching for child with email:', email)
@@ -20,12 +61,12 @@ export async function POST(request: NextRequest) {
         .select('childid, parentid, full_name, email, class, age, password')
         .eq('email', email)
         .single()
-      
+
       console.log('👶 Child query result:', { childData, childError })
-      
+
       if (childData && !childError) {
         console.log('👶 Found child user:', { ...childData, password: '***' })
-        
+
         // Verify password from database
         if (childData.password && childData.password === password) {
           const user = {
@@ -37,7 +78,7 @@ export async function POST(request: NextRequest) {
             class: childData.class,
             age: childData.age
           }
-          
+
           console.log('✅ Child authentication successful:', user)
           return NextResponse.json({ success: true, user })
         } else {
@@ -51,12 +92,12 @@ export async function POST(request: NextRequest) {
     } else if (role === 'parent') {
       // Search in parent table with multiple attempts
       console.log('🔍 Searching for parent with email:', email)
-      
+
       // Try different table names
       const tableNames = ['parents', 'parent', 'parent_user', 'user_parent']
       let parentData = null
       let foundTable = null
-      
+
       for (const tableName of tableNames) {
         try {
           console.log(`🔍 Trying table: ${tableName}`)
@@ -65,7 +106,7 @@ export async function POST(request: NextRequest) {
             .select('*') // Select all columns to see what's available
             .eq('email', email)
             .single()
-          
+
           if (data && !error) {
             parentData = data
             foundTable = tableName
@@ -78,15 +119,15 @@ export async function POST(request: NextRequest) {
           console.log(`❌ Exception querying ${tableName}:`, e)
         }
       }
-      
+
       if (parentData && foundTable) {
         console.log('👨‍👩‍👧‍👦 Found parent user in table:', foundTable)
-        
+
         // Try different password field names
         const possiblePasswordFields = ['password', 'mat_khau', 'pass', 'pwd']
         let passwordMatch = false
         let passwordField = null
-        
+
         for (const field of possiblePasswordFields) {
           if (parentData[field] && parentData[field] === password) {
             passwordMatch = true
@@ -94,13 +135,13 @@ export async function POST(request: NextRequest) {
             break
           }
         }
-        
+
         // For demo, also check hardcoded passwords
         if (!passwordMatch && (password === 'demo123' || password === 'matkhau123')) {
           passwordMatch = true
           passwordField = 'demo'
         }
-        
+
         if (passwordMatch) {
           const user = {
             id: parentData.parent_id || parentData.parentid || parentData.id,
@@ -109,7 +150,7 @@ export async function POST(request: NextRequest) {
             role: 'parent',
             phone: parentData.phone
           }
-          
+
           console.log('✅ Parent authentication successful:', user)
           return NextResponse.json({ success: true, user })
         } else {
@@ -124,7 +165,7 @@ export async function POST(request: NextRequest) {
       console.log('❌ Invalid role specified')
       return NextResponse.json({ success: false, error: 'Invalid role' }, { status: 400 })
     }
-    
+
   } catch (error) {
     console.error('❌ Login error:', error)
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })

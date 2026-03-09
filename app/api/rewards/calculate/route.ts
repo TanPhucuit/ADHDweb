@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/client'
+import { createServerSupabaseClient } from '@/lib/supabase'
 
 // Child ID mapping - convert from internal child ID to database child_id
 function getChildDataId(childId: string): string {
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     const dataChildId = getChildDataId(childId)
     console.log('🏆 Calculating reward points for child:', childId, '-> data child ID:', dataChildId)
 
-    const supabase = createClient()
+    const supabase = createServerSupabaseClient()
 
     // 1. Count schedule_activity with status = completed using JOIN with schedule table
     let completedScheduleCount = 0

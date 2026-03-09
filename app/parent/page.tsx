@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import Link from "next/link"
 import type { Child, FocusSession, DailyReport } from "@/lib/types"
 import { DashboardHeader } from "@/components/parent/dashboard-header"
@@ -12,6 +12,8 @@ import { RealTimeStatus } from "@/components/parent/real-time-status"
 import { CameraPreview } from "@/components/parent/camera-preview"
 import { FocusTrendChart } from "@/components/parent/focus-trend-chart"
 import { ChildSelector } from "@/components/parent/child-selector"
+import { DailySummaryPanel } from "@/components/parent/daily-summary-panel"
+import { Coffee, Check, X, Pill } from "lucide-react"
 
 // Real auth hook that gets user from localStorage (after API login)
 function useAuth() {
@@ -57,6 +59,13 @@ export default function ParentDashboard() {
   const [currentSession, setCurrentSession] = useState<FocusSession | null>(null)
   const [dailyReport, setDailyReport] = useState<DailyReport | null>(null)
   const [dataLoading, setDataLoading] = useState(true)
+  // Break request popup
+  const [pendingBreakRequest, setPendingBreakRequest] = useState<{ requestId: string | number; childId: string; childName: string } | null>(null)
+  const respondedIds = useRef<Set<string>>(new Set())
+  // Reward request badge count (shown on quick-link to rewards page)
+  const [pendingRewardCount, setPendingRewardCount] = useState(0)
+  // Trigger DailySummaryPanel refresh after schedule creation
+  const [summaryRefreshKey, setSummaryRefreshKey] = useState(0)
 
   // Load children data
   useEffect(() => {
@@ -92,6 +101,74 @@ export default function ParentDashboard() {
     }
   }
 
+  // Poll for pending break requests from children
+  useEffect(() => {
+    if (!user || user.role !== 'parent') return
+
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/break-requests?parentId=${user.id}`)
+        if (!res.ok) return
+        const data = await res.json()
+        const requests: any[] = data.requests || []
+        if (requests.length === 0) return
+
+        const latest = requests[0]
+        const id = String(latest.actionid ?? latest.id ?? '')
+        if (!id || respondedIds.current.has(id)) return
+
+        // Find child name
+        const childId = String(latest.childid)
+        const childObj = children.find((c: any) => String(c.id) === childId)
+        const childName = childObj?.name ?? `Con #${childId}`
+
+        setPendingBreakRequest({ requestId: id, childId, childName })
+      } catch {
+        // ignore polling errors
+      }
+    }
+
+    poll()
+    const interval = setInterval(poll, 5000)
+    return () => clearInterval(interval)
+  }, [user, children])
+
+  // Poll for pending reward requests (for selected child)
+  useEffect(() => {
+    if (!user || user.role !== 'parent' || !selectedChild) return
+    const childId = (selectedChild as any).id ?? (selectedChild as any).childid
+    if (!childId) return
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/rewards/redeem?childId=${childId}`)
+        if (!res.ok) return
+        const data = await res.json()
+        setPendingRewardCount((data.requests ?? []).length)
+      } catch { /* ignore */ }
+    }
+    poll()
+    const interval = setInterval(poll, 10000)
+    return () => clearInterval(interval)
+  }, [user, selectedChild])
+
+  const handleBreakResponse = useCallback(async (approved: boolean) => {
+    if (!pendingBreakRequest) return
+    const { requestId, childId } = pendingBreakRequest
+
+    respondedIds.current.add(String(requestId))
+    setPendingBreakRequest(null)
+
+    try {
+      await fetch('/api/break-requests/respond', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ childId, approved }),
+      })
+    } catch (error) {
+      console.error('Failed to send break response:', error)
+    }
+  }, [pendingBreakRequest])
+
   if (loading || dataLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -114,6 +191,40 @@ export default function ParentDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Break request popup */}
+      {pendingBreakRequest && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-sm animate-in zoom-in-95 duration-200">
+            <div className="text-center mb-5">
+              <div className="text-5xl mb-3">☕</div>
+              <h2 className="text-xl font-bold text-gray-800">Xin nghỉ giải lao</h2>
+              <p className="text-gray-500 text-sm mt-1">
+                <b>{pendingBreakRequest.childName}</b> muốn nghỉ giải lao 5 phút
+              </p>
+            </div>
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 mb-5 text-center">
+              <p className="text-amber-700 text-sm font-medium">Bạn có đồng ý cho con nghỉ không?</p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => handleBreakResponse(false)}
+                className="flex-1 flex items-center justify-center gap-2 bg-red-100 hover:bg-red-200 text-red-700 font-bold py-3 rounded-2xl transition-colors"
+              >
+                <X className="w-5 h-5" />
+                Từ chối
+              </button>
+              <button
+                onClick={() => handleBreakResponse(true)}
+                className="flex-1 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-2xl transition-colors"
+              >
+                <Check className="w-5 h-5" />
+                Đồng ý
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header Component */}
       <DashboardHeader user={user} />
 
@@ -144,6 +255,27 @@ export default function ParentDashboard() {
                 <CameraPreview childName={selectedChild.name} childId={selectedChild?.id ? String(selectedChild.id) : ''} />
               )}
 
+              {/* Daily summary for selected child */}
+              {selectedChild && (
+                <DailySummaryPanel
+                  childId={String((selectedChild as any).id ?? (selectedChild as any).childid)}
+                  childName={selectedChild.name}
+                  refreshKey={summaryRefreshKey}
+                />
+              )}
+
+              {/* Medication management shortcut */}
+              <Link href="/parent/medication" className="block">
+                <div className="flex items-center gap-3 bg-pink-50 border-2 border-pink-200 rounded-2xl px-4 py-3 hover:bg-pink-100 transition-colors">
+                  <Pill className="w-6 h-6 text-pink-500 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="font-bold text-pink-800 text-sm">Quản lý thuốc cho con</p>
+                    <p className="text-xs text-pink-600">Thêm thuốc, xem lịch uống, đặt lại ngày mới</p>
+                  </div>
+                  <span className="text-pink-400 text-lg">→</span>
+                </div>
+              </Link>
+
               {/* Completion Notifications - Shows completed activities */}
               <CompletionNotificationsPanel parentId={user.id} autoRefresh={true} />
 
@@ -166,11 +298,30 @@ export default function ParentDashboard() {
                 />
               )}
 
+              {/* Pending reward requests alert */}
+              {pendingRewardCount > 0 && (
+                <a href="/parent/rewards" className="block">
+                  <div className="flex items-center gap-3 bg-yellow-50 border-2 border-yellow-300 rounded-2xl px-4 py-3 hover:bg-yellow-100 transition-colors">
+                    <span className="text-2xl">🎁</span>
+                    <div className="flex-1">
+                      <p className="font-bold text-yellow-800 text-sm">
+                        {selectedChild?.name} có {pendingRewardCount} yêu cầu đổi thưởng
+                      </p>
+                      <p className="text-xs text-yellow-600">Nhấn để xem và duyệt</p>
+                    </div>
+                    <span className="w-6 h-6 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold">
+                      {pendingRewardCount}
+                    </span>
+                  </div>
+                </a>
+              )}
+
               {/* Quick Actions */}
               {selectedChild && (
-                <QuickActions 
+                <QuickActions
                   selectedChildId={selectedChild.id}
                   parentId={user.id.toString()}
+                  onScheduleCreated={() => setSummaryRefreshKey(k => k + 1)}
                 />
               )}
             </div>
