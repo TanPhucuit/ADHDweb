@@ -856,7 +856,7 @@ export default function ChildDashboard() {
                       <div key={medicine.id} className="bg-white rounded-lg p-3 sm:p-4 shadow-sm border border-red-200 hover:shadow-md transition-shadow">
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
-                            <h3 className="font-semibold text-sm sm:text-base text-gray-800">Thuốc #{medicine.reminderId || medicine.id}</h3>
+                            <h3 className="font-semibold text-sm sm:text-base text-gray-800">{medicine.medicationName || medicine.medicine_name || `Thuốc #${medicine.id}`}</h3>
                             <p className="text-xs sm:text-sm text-gray-600">
                               Trạng thái: {medicine.status === 'taken' ? 'Đã uống' : 'Chưa uống'}
                             </p>
