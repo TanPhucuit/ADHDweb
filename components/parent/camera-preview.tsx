@@ -45,11 +45,10 @@ export function CameraPreview({ childName, childId }: CameraPreviewProps) {
       try {
         const response = await fetch(`/api/camera/live?childId=${childId}`)
         const result = await response.json()
-        const liveLink = result.data?.liveLink || result.liveLink || ""
+        const liveLink = result.data?.liveLink || result.liveLink || "https://raspberrypi-2.tail224a11.ts.net/cam/"
         setDbUrl(liveLink)
         setManualUrl(liveLink)
-        if (liveLink) applyUrl(liveLink)
-        else setStreamType('none')
+        applyUrl(liveLink)
       } catch {
         setStreamError('Lỗi khi tải thông tin camera')
         setStreamType('none')
@@ -158,7 +157,7 @@ export function CameraPreview({ childName, childId }: CameraPreviewProps) {
                 type="text"
                 value={manualUrl}
                 onChange={e => setManualUrl(e.target.value)}
-                placeholder="http://192.168.x.x:8889/mystream hoặc rtsp://..."
+                placeholder="https://raspberrypi-2.tail224a11.ts.net/cam/"
                 className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
                 onKeyDown={e => e.key === 'Enter' && handleApplyManual()}
               />
