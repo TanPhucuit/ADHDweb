@@ -1,11 +1,101 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { DashboardHeader } from "@/components/parent/dashboard-header"
 import { ChildSelector } from "@/components/parent/child-selector"
 import { GoBackButton } from "@/components/ui/go-back-button"
-import { Pill, Plus, Trash2, RefreshCw, RotateCcw, Clock, CheckCircle, AlertCircle, X, Calendar } from "lucide-react"
+import { Pill, Plus, Trash2, RefreshCw, RotateCcw, Clock, CheckCircle, AlertCircle, X, Calendar, ChevronDown } from "lucide-react"
 import type { Child } from "@/lib/types"
+
+const ADHD_MEDICATIONS = [
+  { name: "Ritalin", note: "Methylphenidate – tác dụng ngắn" },
+  { name: "Concerta", note: "Methylphenidate ER – tác dụng dài" },
+  { name: "Ritalin LA", note: "Methylphenidate – tác dụng kéo dài" },
+  { name: "Strattera", note: "Atomoxetine – không phải chất kích thích" },
+  { name: "Vyvanse", note: "Lisdexamfetamine – tác dụng dài" },
+  { name: "Adderall", note: "Amphetamine hỗn hợp" },
+  { name: "Adderall XR", note: "Amphetamine hỗn hợp – tác dụng dài" },
+  { name: "Focalin", note: "Dexmethylphenidate – tác dụng ngắn" },
+  { name: "Focalin XR", note: "Dexmethylphenidate – tác dụng dài" },
+  { name: "Intuniv", note: "Guanfacine ER – không phải chất kích thích" },
+  { name: "Kapvay", note: "Clonidine ER – không phải chất kích thích" },
+  { name: "Dexedrine", note: "Dextroamphetamine" },
+  { name: "Daytrana", note: "Methylphenidate – miếng dán da" },
+  { name: "Metadate CD", note: "Methylphenidate – tác dụng kéo dài" },
+  { name: "Quillichew ER", note: "Methylphenidate – viên nhai" },
+  { name: "Jornay PM", note: "Methylphenidate – uống buổi tối" },
+  { name: "Qelbree", note: "Viloxazine – không phải chất kích thích" },
+  { name: "Mydayis", note: "Amphetamine hỗn hợp – tác dụng rất dài" },
+  { name: "Evekeo", note: "Amphetamine – tác dụng ngắn" },
+  { name: "Guanfacine", note: "Generic – huyết áp/ADHD" },
+]
+
+function MedicationNameInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  const filtered = value.trim()
+    ? ADHD_MEDICATIONS.filter(m => m.name.toLowerCase().includes(value.toLowerCase()) || m.note.toLowerCase().includes(value.toLowerCase()))
+    : ADHD_MEDICATIONS
+
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener("mousedown", handler)
+    return () => document.removeEventListener("mousedown", handler)
+  }, [])
+
+  return (
+    <div ref={ref} className="relative">
+      <div className="relative">
+        <input
+          className="w-full border border-gray-200 rounded-xl px-3 py-2.5 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
+          placeholder="VD: Ritalin, Concerta... hoặc tự nhập"
+          value={value}
+          onFocus={() => setOpen(true)}
+          onChange={e => { onChange(e.target.value); setOpen(true) }}
+          autoComplete="off"
+        />
+        <button
+          type="button"
+          tabIndex={-1}
+          onClick={() => setOpen(v => !v)}
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+        >
+          <ChevronDown className={`w-4 h-4 transition-transform ${open ? "rotate-180" : ""}`} />
+        </button>
+      </div>
+      {open && (
+        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+          {filtered.length === 0 ? (
+            <div className="px-4 py-3 text-sm text-gray-400 text-center">
+              Không tìm thấy — nhập tên thuốc tự do ở trên
+            </div>
+          ) : (
+            filtered.map(med => (
+              <button
+                key={med.name}
+                type="button"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => { onChange(med.name); setOpen(false) }}
+                className="w-full text-left px-4 py-2.5 hover:bg-purple-50 transition-colors flex items-center justify-between gap-2 group"
+              >
+                <span className="font-semibold text-sm text-gray-800 group-hover:text-purple-700">{med.name}</span>
+                <span className="text-xs text-gray-400 truncate flex-shrink-0 max-w-[55%] text-right">{med.note}</span>
+              </button>
+            ))
+          )}
+          {value.trim() && !ADHD_MEDICATIONS.some(m => m.name.toLowerCase() === value.toLowerCase()) && (
+            <div className="border-t border-gray-100 px-4 py-2.5 text-xs text-gray-400 italic">
+              Nhập "<span className="text-purple-600 font-medium not-italic">{value}</span>" — tên thuốc tự chọn
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function useAuth() {
   const [user, setUser] = useState<any>(null)
@@ -294,11 +384,9 @@ export default function ParentMedicationPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="sm:col-span-2">
                     <label className="text-xs font-semibold text-gray-600 mb-1 block">Tên thuốc *</label>
-                    <input
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
-                      placeholder="VD: Ritalin, Concerta..."
+                    <MedicationNameInput
                       value={form.medicationName}
-                      onChange={e => setForm(f => ({ ...f, medicationName: e.target.value }))}
+                      onChange={v => setForm(f => ({ ...f, medicationName: v }))}
                     />
                   </div>
                   <div>
