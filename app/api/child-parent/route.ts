@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://pjvztaykgkxnefwsyqvd.supabase.co'
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBqdnp0YXlrZ2t4bmVmd3N5cXZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzIyNTczMjIsImV4cCI6MjA0NzgzMzMyMn0.Jj6Tiq-GCnfhftIBb39s9Cr5HaMO9pHh9FKsWr5Mii8'
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://bsidccdtyuengwahnjgn.supabase.co'
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJzaWRjY2R0eXVlbmd3YWhuamduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNTY0NDQsImV4cCI6MjA4ODczMjQ0NH0.gfM5jeoXHItjVUQvZa2mC8wsXG8nXc-g7sGwRC0K_Nk'
 
 const supabase = createClient(supabaseUrl, supabaseKey)
 
