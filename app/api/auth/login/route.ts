@@ -1,10 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://bsidccdtyuengwahnjgn.supabase.co'
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJzaWRjY2R0eXVlbmd3YWhuamduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNTY0NDQsImV4cCI6MjA4ODczMjQ0NH0.gfM5jeoXHItjVUQvZa2mC8wsXG8nXc-g7sGwRC0K_Nk'
-
-const supabase = createClient(supabaseUrl, supabaseKey)
+import { createServerSupabaseClient } from '@/lib/supabase'
 
 // ===== DEMO ACCOUNTS (Local, không cần Supabase) =====
 const DEMO_ACCOUNTS: Record<string, { password: string; user: Record<string, any> }> = {
@@ -52,6 +47,8 @@ export async function POST(request: NextRequest) {
       console.log('✅ Demo login successful:', demoUser)
       return NextResponse.json({ success: true, user: demoUser })
     }
+
+    const supabase = createServerSupabaseClient()
 
     if (role === 'child') {
       // Search only in child table
